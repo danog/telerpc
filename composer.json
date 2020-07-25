@@ -1,0 +1,22 @@
+{
+    "name": "danogentili/telerpc",
+    "description": "RPC Error reporting API",
+    "type": "project",
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/danog/phpseclib"
+        }
+    ],
+    "require": {
+        "danog/madelineproto": "dev-master"
+    },
+    "license": "AGPLV3",
+    "authors": [
+        {
+            "name": "Daniil Gentili",
+            "email": "daniil.gentili.dg@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev"
+}

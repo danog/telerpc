@@ -15,7 +15,7 @@ if (php_sapi_name() === 'cli') {
     $q->execute();
     $r = $q->fetchAll(PDO::FETCH_COLUMN);
     foreach ($r as $error) {
-        if (strpos($error, 'INPUT_METHOD_INVALID') !== false || strpos($error, 'Received bad_msg_notification') === 0) {
+        if (strpos($error, 'INPUT_METHOD_INVALID') !== false || strpos($error, 'INPUT_CONSTRUCTOR_INVALID') !== false || strpos($error, 'Received bad_msg_notification') === 0) {
             $q = $pdo->prepare('DELETE FROM errors WHERE error=?');
             $q->execute([$error]);
             $q = $pdo->prepare('DELETE FROM error_descriptions WHERE error=?');
@@ -27,7 +27,7 @@ if (php_sapi_name() === 'cli') {
     $q->execute();
     $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
     foreach ($r as $error => $methods) {
-        if (strpos($error, 'INPUT_METHOD_INVALID') !== false || strpos($error, 'Received bad_msg_notification') === 0) {
+        if (strpos($error, 'INPUT_METHOD_INVALID') !== false || strpos($error, 'INPUT_CONSTRUCTOR_INVALID') !== false || strpos($error, 'Received bad_msg_notification') === 0) {
             $q = $pdo->prepare('DELETE FROM errors WHERE error=?');
             $q->execute([$error]);
             $q = $pdo->prepare('DELETE FROM error_descriptions WHERE error=?');
@@ -55,7 +55,9 @@ if (php_sapi_name() === 'cli') {
     }
     $map = ['all' => 'v1', 'newall' => 'v2', 'allv3' => 'v3', 'allv4' => 'v4', 'bot' => 'bot'];
     foreach ($map as $query => $name) {
-        $data = file_get_contents("https://rpc.pwrtelegram.xyz/?$query");
+        $opts = ["http" => ["method" => "GET", "header" => "Host: rpc.pwrtelegram.xyz\r\n"]];
+        $context = stream_context_create($opts);
+        $data = file_get_contents("http://localhost/?$query", false, $context);
         $data = json_encode(json_decode($data, true), JSON_PRETTY_PRINT);
         file_put_contents("data/$name.json", $data);
     }
@@ -209,10 +211,9 @@ try {
         $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r) {
             $code = (int) $code;
             $error = preg_replace('/_X(["_])?/', '_%d\1', $error);
-            if (in_array($method, $r[$code][$error])) {
-                return;
+            if (!in_array($method, $r[$code][$error] ?? [])) {
+                $r[$code][$error][] = $method;
             }
-            $r[$code][$error][] = $method;
         });
         $hr = [];
         $q = $pdo->prepare('SELECT error, description FROM error_descriptions');

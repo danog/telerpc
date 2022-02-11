@@ -5,7 +5,7 @@ ini_set('error_log', '/tmp/rpc.log');
 header('Content-Type: application/json');
 function plsdie($message)
 {
-    die(json_encode(['ok' => false, 'description' => $message]));
+    exit(json_encode(['ok' => false, 'description' => $message]));
 }
 if (php_sapi_name() === 'cli') {
     include 'db.php';
@@ -55,13 +55,13 @@ if (php_sapi_name() === 'cli') {
     }
     $map = ['all' => 'v1', 'newall' => 'v2', 'allv3' => 'v3', 'allv4' => 'v4', 'bot' => 'bot'];
     foreach ($map as $query => $name) {
-        $opts = ["http" => ["method" => "GET", "header" => "Host: rpc.pwrtelegram.xyz\r\n"]];
+        $opts = ['http' => ['method' => 'GET', 'header' => "Host: rpc.pwrtelegram.xyz\r\n"]];
         $context = stream_context_create($opts);
         $data = file_get_contents("http://localhost/?$query", false, $context);
         $data = json_encode(json_decode($data, true), JSON_PRETTY_PRINT);
         file_put_contents("data/$name.json", $data);
     }
-    die;
+    exit;
 }
 
 if (!isset($_REQUEST['allv4']) && !isset($_REQUEST['all']) && !isset($_REQUEST['newall']) && !isset($_REQUEST['format']) && !isset($_REQUEST['allv3']) && !isset($_REQUEST['for']) && !isset($_REQUEST['rip']) && !isset($_REQUEST['code_for']) && !isset($_REQUEST['description_for']) && !isset($_REQUEST['bot']) && !isset($_REQUEST['period']) && !isset($_REQUEST['floods'])) {
@@ -98,7 +98,7 @@ try {
             $_REQUEST['additional_value'] = 'default';
         }
         $res = $pdo->prepare('REPLACE INTO flood_wait (method, number, period, additional_key, additional_value) VALUES (?, ?, ?, ?, ?);')->execute([$method, $number, $period, $_REQUEST['additional_key'], $_REQUEST['additional_value']]);
-        die(json_encode(['ok' => true]));
+        exit(json_encode(['ok' => true]));
     }
     if (isset($_REQUEST['for'])) {
         if (is_numeric($_REQUEST['for'])) {
@@ -123,7 +123,7 @@ try {
                 }
             }
         }
-        die(json_encode($r));
+        exit(json_encode($r));
     }
     if (isset($_REQUEST['floods'])) {
         if (is_numeric($_REQUEST['floods'])) {
@@ -139,12 +139,12 @@ try {
         $q = $pdo->prepare('SELECT period, number, additional_key, additional_value FROM flood_wait WHERE method=?');
         $q->execute([$method]);
         $r = ['ok' => true, 'result' => $q->fetchAll(PDO::FETCH_ASSOC)];
-        die(json_encode($r));
+        exit(json_encode($r));
     }
     if (isset($_REQUEST['rip'])) {
         $q = $pdo->prepare('SELECT COUNT(time) FROM rip WHERE time > FROM_UNIXTIME(?)');
         $q->execute([is_int($_REQUEST['rip']) ? $_REQUEST['rip'] : time() - 3600]);
-        die(json_encode(['ok' => true, 'result' => $q->fetchColumn()]));
+        exit(json_encode(['ok' => true, 'result' => $q->fetchColumn()]));
     }
     if (isset($_REQUEST['all'])) {
         $q = $pdo->prepare('SELECT method, code, error FROM errors');
@@ -161,7 +161,7 @@ try {
         $q->execute();
         $hr = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
 
-        die(json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
+        exit(json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
     }
     if (isset($_REQUEST['newall'])) {
         $desc = [];
@@ -185,7 +185,7 @@ try {
             ];
         });
 
-        die(json_encode(['ok' => true, 'result' => $r]));
+        exit(json_encode(['ok' => true, 'result' => $r]));
     }
     if (isset($_REQUEST['allv3'])) {
         $q = $pdo->prepare('SELECT method, code, error FROM errors');
@@ -202,7 +202,7 @@ try {
             $hr[$error] = $description;
         });
 
-        die(json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
+        exit(json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
     }
     if (isset($_REQUEST['allv4'])) {
         $q = $pdo->prepare('SELECT method, code, error FROM errors');
@@ -224,7 +224,7 @@ try {
             $hr[$error] = $description;
         });
 
-        die(json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
+        exit(json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
     }
     if (isset($_REQUEST['format'])) {
         header('Content-Type: text/plain');
@@ -247,19 +247,19 @@ try {
             $r .= "|$code|$error|".$q->fetchColumn()."|\n";
         }
 
-        die($r);
+        exit($r);
     }
     if (isset($_REQUEST['bot'])) {
         $q = $pdo->prepare('SELECT method FROM bot_method_invalid');
         $q->execute();
         $r = $q->fetchAll(PDO::FETCH_COLUMN);
-        die(json_encode(['ok' => true, 'result' => $r]));
+        exit(json_encode(['ok' => true, 'result' => $r]));
     }
     if (isset($_REQUEST['description_for'])) {
         $q = $pdo->prepare('SELECT description FROM error_descriptions WHERE error=?');
         $q->execute([$_REQUEST['description_for']]);
         if ($q->rowCount()) {
-            die(json_encode(['ok' => true, 'result' => $q->fetchColumn()]));
+            exit(json_encode(['ok' => true, 'result' => $q->fetchColumn()]));
         } else {
             plsdie('No description');
         }
@@ -268,7 +268,7 @@ try {
         $q = $pdo->prepare('SELECT code FROM errors WHERE error=?');
         $q->execute([$_REQUEST['code_for']]);
         if ($q->rowCount()) {
-            die(json_encode(['ok' => true, 'result' => $q->fetchColumn()]));
+            exit(json_encode(['ok' => true, 'result' => $q->fetchColumn()]));
         } else {
             plsdie('No such error');
         }
@@ -305,7 +305,7 @@ try {
         $q = $pdo->prepare('SELECT description FROM error_descriptions WHERE error=?');
         $q->execute([$_REQUEST['error']]);
         if ($q->rowCount()) {
-            die(json_encode(['ok' => true, 'result' => $q->fetchColumn()]));
+            exit(json_encode(['ok' => true, 'result' => $q->fetchColumn()]));
         } else {
             plsdie('No description');
         }

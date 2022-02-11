@@ -66,7 +66,7 @@ if (php_sapi_name() === 'cli') {
 
 if (!isset($_REQUEST['allv4']) && !isset($_REQUEST['all']) && !isset($_REQUEST['newall']) && !isset($_REQUEST['format']) && !isset($_REQUEST['allv3']) && !isset($_REQUEST['for']) && !isset($_REQUEST['rip']) && !isset($_REQUEST['code_for']) && !isset($_REQUEST['description_for']) && !isset($_REQUEST['bot']) && !isset($_REQUEST['period']) && !isset($_REQUEST['floods'])) {
     if (!isset($_REQUEST['method']) || !isset($_REQUEST['error']) || !isset($_REQUEST['code']) || $_REQUEST['error'] === '' || $_REQUEST['method'] === '' || !is_numeric($_REQUEST['code'])) {
-        plsdie('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz.');
+        plsdie('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz, to report a new error use the `code`, `method` and `error` query string parameters.');
     }
     if (in_array($_REQUEST['error'], ['INPUT_CONSTRUCTOR_INVALID_X', 'USER_DEACTIVATED_BAN', 'INPUT_METHOD_INVALID', 'INPUT_FETCH_ERROR', 'AUTH_KEY_UNREGISTERED', 'SESSION_REVOKED', 'USER_DEACTIVATED']) || strpos($_REQUEST['error'], 'FLOOD_WAIT_') !== false || strpos($_REQUEST['error'], 'EMAIL_UNCONFIRMED_') !== false || strpos($_REQUEST['error'], '_MIGRATE_') !== false || $_REQUEST['error'] === 'PEER_FLOOD' || preg_match('/FILE_PART_\d*_MISSING/', $_REQUEST['error'])) {
         plsdie('nop');

@@ -33,6 +33,7 @@ final class Main
         $error = \preg_replace('/_X(["_])?/', '_%d\1', $error);
         $error = \preg_replace('/_\d+(["_])?/', '_%d\1', $error);
         $error = preg_replace('/_X$/', '_%d', $error);
+
         return preg_replace('/_\d+$/', '_%d', $error);
     }
 
@@ -223,7 +224,7 @@ final class Main
     {
         if (PHP_SAPI === 'cli') {
             $this->cli();
-            die;
+            exit;
         }
 
         \ini_set('log_errors', 1);

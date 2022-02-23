@@ -3,6 +3,7 @@
 final class Main
 {
     private ?\PDO $pdo = null;
+
     private function connect(): \PDO
     {
         if ($this->pdo !== null) {
@@ -11,8 +12,10 @@ final class Main
         $this->pdo = include 'db.php';
         $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
         return $this->pdo;
     }
+
     private static function error(string $message): string
     {
         return \json_encode(['ok' => false, 'description' => $message]);
@@ -43,6 +46,7 @@ final class Main
 
         return [$r, $hr];
     }
+
     private function v4(): array
     {
         $this->connect();
@@ -68,6 +72,7 @@ final class Main
 
         return [$r, $hr];
     }
+
     private function bot(): array
     {
         $this->connect();
@@ -75,8 +80,10 @@ final class Main
         $q = $this->pdo->prepare('SELECT method FROM bot_method_invalid');
         $q->execute();
         $r = $q->fetchAll(PDO::FETCH_COLUMN);
+
         return $r;
     }
+
     private function cli(): void
     {
         $this->connect();
@@ -124,11 +131,11 @@ final class Main
             }
         }
         [$r, $hr] = $this->v3();
-        \file_put_contents("data/v3.json", \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
+        \file_put_contents('data/v3.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
         [$r, $hr] = $this->v4();
-        \file_put_contents("data/v4.json", \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
+        \file_put_contents('data/v4.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
         $bot = $this->bot();
-        \file_put_contents("data/bot.json", \json_encode(['ok' => true, 'result' => $bot]));
+        \file_put_contents('data/bot.json', \json_encode(['ok' => true, 'result' => $bot]));
     }
 
     public function run(): void
@@ -151,6 +158,7 @@ final class Main
             $error = $_REQUEST['error'];
             $method = $_REQUEST['error'];
             $code = $_REQUEST['code'];
+
             try {
                 $this->connect();
                 if ($error === $code) {
@@ -163,16 +171,16 @@ final class Main
                     $q = $this->pdo->prepare('SELECT description FROM error_descriptions WHERE error=?');
                     $q->execute([$error]);
                     if ($q->rowCount()) {
-                        die(self::ok($q->fetchColumn()));
+                        exit(self::ok($q->fetchColumn()));
                     }
-                    die(self::error('No description'));
+                    exit(self::error('No description'));
                 }
             } catch (\Throwable $e) {
-                die(self::error($e->getMessage()));
+                exit(self::error($e->getMessage()));
             }
-            die(self::ok(true));
+            exit(self::ok(true));
         } else {
-            die(self::error('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz, to report a new error use the `code`, `method` and `error` GET/POST parameters.'));
+            exit(self::error('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz, to report a new error use the `code`, `method` and `error` GET/POST parameters.'));
         }
     }
 }

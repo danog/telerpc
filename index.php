@@ -6,4 +6,4 @@
 
 include 'src/Main.php';
 
-(new Main)->run();
+(new Main())->run();

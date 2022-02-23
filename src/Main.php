@@ -26,6 +26,34 @@ final class Main
         return \json_encode(['ok' => true, 'result' => $result]);
     }
 
+    private function v2(): array
+    {
+        $this->connect();
+        $desc = [];
+        $q = $this->pdo->prepare('SELECT error, description FROM error_descriptions');
+        $q->execute();
+        $q->fetchAll(PDO::FETCH_FUNC, function ($error, $description) use (&$desc) {
+            $desc[$error] = $description;
+        });
+
+        $q = $this->pdo->prepare('SELECT method, code, error FROM errors');
+        $q->execute();
+        $r = [];
+        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r, &$desc) {
+            $code = (int) $code;
+            if ($code === 500) {
+                return;
+            }
+            $r[$method][] = [
+                'error_code'        => $code,
+                'error_message'     => $error,
+                'error_description' => $desc[$error],
+            ];
+        });
+
+        return $r;
+    }
+
     private function v3(): array
     {
         $this->connect();
@@ -130,6 +158,8 @@ final class Main
                 }
             }
         }
+        $r = $this->v2();
+        \file_put_contents('data/v2.json', \json_encode(['ok' => true, 'result' => $r]));
         [$r, $hr] = $this->v3();
         \file_put_contents('data/v3.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
         [$r, $hr] = $this->v4();

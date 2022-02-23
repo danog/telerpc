@@ -26,6 +26,20 @@ final class Main
         return \json_encode(['ok' => true, 'result' => $result]);
     }
 
+
+    private static function isBad(string $error, int $code): bool
+    {
+        return \in_array($error, ['PEER_FLOOD', 'INPUT_CONSTRUCTOR_INVALID_X', 'USER_DEACTIVATED_BAN', 'INPUT_METHOD_INVALID', 'INPUT_FETCH_ERROR', 'AUTH_KEY_UNREGISTERED', 'SESSION_REVOKED', 'USER_DEACTIVATED', 'RPC_CALL_FAIL', 'RPC_MCGET_FAIL', 'INTERDC_5_CALL_ERROR', 'INTERDC_4_CALL_ERROR', 'INTERDC_3_CALL_ERROR', 'INTERDC_2_CALL_ERROR', 'INTERDC_1_CALL_ERROR', 'INTERDC_5_CALL_RICH_ERROR', 'INTERDC_4_CALL_RICH_ERROR', 'INTERDC_3_CALL_RICH_ERROR', 'INTERDC_2_CALL_RICH_ERROR', 'INTERDC_1_CALL_RICH_ERROR', 'AUTH_KEY_DUPLICATED', 'CONNECTION_NOT_INITED', 'LOCATION_NOT_AVAILABLE', 'AUTH_KEY_INVALID'])
+                || \str_contains($error, 'Received bad_msg_notification')
+                || \str_contains($error, 'FLOOD_WAIT_')
+                || \str_contains($error, '_MIGRATE_')
+                || \str_contains($error, 'INPUT_METHOD_INVALID')
+                || \str_contains($error, 'INPUT_CONSTRUCTOR_INVALID')
+                || \str_starts_with($error, 'Received bad_msg_notification')
+                || \preg_match('/FILE_PART_\d*_MISSING/', $error)
+                || $code === 500;
+    }
+
     private static function sanitize(string $error): string
     {
         $error = preg_replace('/_XMIN$/', '_%dMIN', $error);
@@ -166,7 +180,7 @@ final class Main
         $q->execute();
         $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
         foreach ($r as $error => $methods) {
-            if (\strpos($error, 'INPUT_METHOD_INVALID') !== false || \strpos($error, 'INPUT_CONSTRUCTOR_INVALID') !== false || \strpos($error, 'Received bad_msg_notification') === 0 || $error === 'CONNECTION_NOT_INITED' || $error === 'LOCATION_NOT_AVAILABLE') {
+            if (self::isBad($error, 0)) {
                 $q = $this->pdo->prepare('DELETE FROM errors WHERE error=?');
                 $q->execute([$error]);
                 $q = $this->pdo->prepare('DELETE FROM error_descriptions WHERE error=?');
@@ -234,16 +248,7 @@ final class Main
             && $_REQUEST['error'] !== ''
             && $_REQUEST['method'] !== ''
             && \is_numeric($_REQUEST['code'])
-            && !(
-                \in_array($_REQUEST['error'], ['PEER_FLOOD', 'INPUT_CONSTRUCTOR_INVALID_X', 'USER_DEACTIVATED_BAN', 'INPUT_METHOD_INVALID', 'INPUT_FETCH_ERROR', 'AUTH_KEY_UNREGISTERED', 'SESSION_REVOKED', 'USER_DEACTIVATED', 'RPC_CALL_FAIL', 'RPC_MCGET_FAIL', 'INTERDC_5_CALL_ERROR', 'INTERDC_4_CALL_ERROR', 'INTERDC_3_CALL_ERROR', 'INTERDC_2_CALL_ERROR', 'INTERDC_1_CALL_ERROR', 'INTERDC_5_CALL_RICH_ERROR', 'INTERDC_4_CALL_RICH_ERROR', 'INTERDC_3_CALL_RICH_ERROR', 'INTERDC_2_CALL_RICH_ERROR', 'INTERDC_1_CALL_RICH_ERROR'])
-                || \str_contains($_REQUEST['error'], 'Received bad_msg_notification')
-                || \str_contains($_REQUEST['error'], 'FLOOD_WAIT_')
-                || \str_contains($_REQUEST['error'], 'EMAIL_UNCONFIRMED_')
-                || \str_contains($_REQUEST['error'], '_MIGRATE_')
-                || \preg_match('/FILE_PART_\d*_MISSING/', $_REQUEST['error'])
-                || $_REQUEST['code'] == 500
-                || $_REQUEST['error'] === $_REQUEST['method']
-            )
+            && !self::isBad($_REQUEST['error'], (int) $_REQUEST['code'])
          ) {
             $error = self::sanitize($_REQUEST['error']);
             $method = $_REQUEST['method'];

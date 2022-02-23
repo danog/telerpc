@@ -142,9 +142,9 @@ try {
         exit(json_encode($r));
     }
     if (isset($_REQUEST['rip'])) {
-        $q = $pdo->prepare('SELECT COUNT(time) FROM rip WHERE time > FROM_UNIXTIME(?)');
-        $q->execute([is_int($_REQUEST['rip']) ? $_REQUEST['rip'] : time() - 3600]);
-        exit(json_encode(['ok' => true, 'result' => $q->fetchColumn()]));
+        /*$q = $pdo->prepare('SELECT COUNT(time) FROM rip WHERE time > FROM_UNIXTIME(?)');
+        $q->execute([is_int($_REQUEST['rip']) ? $_REQUEST['rip'] : time() - 3600]);*/
+        exit(json_encode(['ok' => true])); //, 'result' => $q->fetchColumn()]));
     }
     if (isset($_REQUEST['all'])) {
         $q = $pdo->prepare('SELECT method, code, error FROM errors');
@@ -276,7 +276,8 @@ try {
     if ($_REQUEST['error'] === $_REQUEST['code']) {
         $res = $pdo->prepare('REPLACE INTO code_errors VALUES (?);')->execute([$_REQUEST['code']]);
     } elseif (in_array($_REQUEST['error'], ['RPC_CALL_FAIL', 'RPC_MCGET_FAIL', 'INTERDC_5_CALL_ERROR', 'INTERDC_4_CALL_ERROR', 'INTERDC_3_CALL_ERROR', 'INTERDC_2_CALL_ERROR', 'INTERDC_1_CALL_ERROR', 'INTERDC_5_CALL_RICH_ERROR', 'INTERDC_4_CALL_RICH_ERROR', 'INTERDC_3_CALL_RICH_ERROR', 'INTERDC_2_CALL_RICH_ERROR', 'INTERDC_1_CALL_RICH_ERROR'])) {
-        $res = $pdo->prepare('INSERT INTO rip VALUES (FROM_UNIXTIME(?));')->execute([time()]);
+        $res = true;
+        //$res = $pdo->prepare('INSERT INTO rip VALUES (FROM_UNIXTIME(?));')->execute([time()]);
     } elseif (in_array($_REQUEST['error'], ['BOT_METHOD_INVALID'])) {
         if (is_numeric($_REQUEST['method'])) {
             require 'vendor/autoload.php';

@@ -277,7 +277,7 @@ try {
         $res = $pdo->prepare('REPLACE INTO code_errors VALUES (?);')->execute([$_REQUEST['code']]);
     } elseif (in_array($_REQUEST['error'], ['RPC_CALL_FAIL', 'RPC_MCGET_FAIL', 'INTERDC_5_CALL_ERROR', 'INTERDC_4_CALL_ERROR', 'INTERDC_3_CALL_ERROR', 'INTERDC_2_CALL_ERROR', 'INTERDC_1_CALL_ERROR', 'INTERDC_5_CALL_RICH_ERROR', 'INTERDC_4_CALL_RICH_ERROR', 'INTERDC_3_CALL_RICH_ERROR', 'INTERDC_2_CALL_RICH_ERROR', 'INTERDC_1_CALL_RICH_ERROR'])) {
         $res = true;
-        //$res = $pdo->prepare('INSERT INTO rip VALUES (FROM_UNIXTIME(?));')->execute([time()]);
+    //$res = $pdo->prepare('INSERT INTO rip VALUES (FROM_UNIXTIME(?));')->execute([time()]);
     } elseif (in_array($_REQUEST['error'], ['BOT_METHOD_INVALID'])) {
         if (is_numeric($_REQUEST['method'])) {
             require 'vendor/autoload.php';

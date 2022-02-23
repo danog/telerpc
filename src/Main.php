@@ -28,26 +28,31 @@ final class Main
 
     private static function isBad(string $error, int $code): bool
     {
-        return \in_array($error, ['PEER_FLOOD', 'INPUT_CONSTRUCTOR_INVALID_X', 'USER_DEACTIVATED_BAN', 'INPUT_METHOD_INVALID', 'INPUT_FETCH_ERROR', 'AUTH_KEY_UNREGISTERED', 'SESSION_REVOKED', 'USER_DEACTIVATED', 'RPC_CALL_FAIL', 'RPC_MCGET_FAIL', 'INTERDC_5_CALL_ERROR', 'INTERDC_4_CALL_ERROR', 'INTERDC_3_CALL_ERROR', 'INTERDC_2_CALL_ERROR', 'INTERDC_1_CALL_ERROR', 'INTERDC_5_CALL_RICH_ERROR', 'INTERDC_4_CALL_RICH_ERROR', 'INTERDC_3_CALL_RICH_ERROR', 'INTERDC_2_CALL_RICH_ERROR', 'INTERDC_1_CALL_RICH_ERROR', 'AUTH_KEY_DUPLICATED', 'CONNECTION_NOT_INITED', 'LOCATION_NOT_AVAILABLE', 'AUTH_KEY_INVALID'])
+        return \in_array($error, ['PEER_FLOOD', 'INPUT_CONSTRUCTOR_INVALID_X', 'USER_DEACTIVATED_BAN', 'INPUT_METHOD_INVALID', 'INPUT_FETCH_ERROR', 'AUTH_KEY_UNREGISTERED', 'SESSION_REVOKED', 'USER_DEACTIVATED', 'RPC_CALL_FAIL', 'RPC_MCGET_FAIL', 'INTERDC_5_CALL_ERROR', 'INTERDC_4_CALL_ERROR', 'INTERDC_3_CALL_ERROR', 'INTERDC_2_CALL_ERROR', 'INTERDC_1_CALL_ERROR', 'INTERDC_5_CALL_RICH_ERROR', 'INTERDC_4_CALL_RICH_ERROR', 'INTERDC_3_CALL_RICH_ERROR', 'INTERDC_2_CALL_RICH_ERROR', 'INTERDC_1_CALL_RICH_ERROR', 'AUTH_KEY_DUPLICATED', 'CONNECTION_NOT_INITED', 'LOCATION_NOT_AVAILABLE', 'AUTH_KEY_INVALID', 'BOT_METHOD_INVALID', 'LANG_CODE_EMPTY', 'memory limit exit', 'memory limit(?)', 'INPUT_REQUEST_TOO_LONG', 'SESSION_PASSWORD_NEEDED', 'INPUT_FETCH_FAIL',
+                                'CONNECTION_SYSTEM_EMPTY',
+                                'CONNECTION_DEVICE_MODEL_EMPTY', 'AUTH_KEY_PERM_EMPTY', 'UNKNOWN_METHOD', 'ENCRYPTION_OCCUPY_FAILED', 'ENCRYPTION_OCCUPY_ADMIN_FAILED', 'CHAT_OCCUPY_USERNAME_FAILED', 'REG_ID_GENERATE_FAILED',
+                                'CONNECTION_LANG_PACK_INVALID', 'MSGID_DECREASE_RETRY', 'API_CALL_ERROR', 'STORAGE_CHECK_FAILED', 'INPUT_LAYER_INVALID', 'NEED_MEMBER_INVALID', 'NEED_CHAT_INVALID', 'HISTORY_GET_FAILED', 'CHP_CALL_FAIL', 'IMAGE_ENGINE_DOWN', 'MSG_RANGE_UNSYNC', 'PTS_CHANGE_EMPTY',
+                                'CONNECTION_SYSTEM_LANG_CODE_EMPTY', 'WORKER_BUSY_TOO_LONG_RETRY', 'WP_ID_GENERATE_FAILED', 'ARR_CAS_FAILED', 'CHANNEL_ADD_INVALID', 'CHANNEL_ADMINS_INVALID', 'CHAT_OCCUPY_LOC_FAILED', 'GROUPED_ID_OCCUPY_FAILED', 'GROUPED_ID_OCCUPY_FAULED', 'LOG_WRAP_FAIL', 'MEMBER_FETCH_FAILED', 'MEMBER_OCCUPY_PRIMARY_LOC_FAILED', 'MEMBER_FETCH_FAILED', 'MEMBER_NO_LOCATION', 'MEMBER_OCCUPY_USERNAME_FAILED', 'MT_SEND_QUEUE_TOO_LONG', 'POSTPONED_TIMEOUT', 'RPC_CONNECT_FAILED', 'SHORTNAME_OCCUPY_FAILED', 'STORE_INVALID_OBJECT_TYPE', 'STORE_INVALID_SCALAR_TYPE', 'TMSG_ADD_FAILED', 'UNKNOWN_ERROR', 'UPLOAD_NO_VOLUME', 'USER_NOT_AVAILABLE', 'VOLUME_LOC_NOT_FOUND', ])
                 || \str_contains($error, 'Received bad_msg_notification')
                 || \str_contains($error, 'FLOOD_WAIT_')
                 || \str_contains($error, '_MIGRATE_')
                 || \str_contains($error, 'INPUT_METHOD_INVALID')
                 || \str_contains($error, 'INPUT_CONSTRUCTOR_INVALID')
                 || \str_starts_with($error, 'Received bad_msg_notification')
-                || \preg_match('/FILE_PART_\d*_MISSING/', $error)
-                || $code === 500;
+                || \str_starts_with($error, 'No workers running')
+                || \str_starts_with($error, 'All workers are busy. Active_queries ')
+                || \preg_match('/FILE_PART_\d*_MISSING/', $error);
     }
 
     private static function sanitize(string $error): string
     {
-        $error = preg_replace('/_XMIN$/', '_%dMIN', $error);
-        $error = preg_replace('/_\d+MIN$/', '_%dMIN', $error);
+        $error = \preg_replace('/_XMIN$/', '_%dMIN', $error);
+        $error = \preg_replace('/_\d+MIN$/', '_%dMIN', $error);
         $error = \preg_replace('/_X(["_])?/', '_%d\1', $error);
         $error = \preg_replace('/_\d+(["_])?/', '_%d\1', $error);
-        $error = preg_replace('/_X$/', '_%d', $error);
+        $error = \preg_replace('/_X$/', '_%d', $error);
 
-        return preg_replace('/_\d+$/', '_%d', $error);
+        return \preg_replace('/_\d+$/', '_%d', $error);
     }
 
     private function v2(): array
@@ -102,14 +107,17 @@ final class Main
         return [$r, $hr];
     }
 
-    private function v4(): array
+    private function v4(bool $core = false): array
     {
         $this->connect();
 
         $q = $this->pdo->prepare('SELECT method, code, error FROM errors');
         $q->execute();
         $r = [];
-        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r) {
+        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r, $core) {
+            if ($core && ($error === 'UPDATE_APP_TO_LOGIN' || $error === 'UPDATE_APP_REQUIRED')) {
+                return;
+            }
             $code = (int) $code;
             $error = self::sanitize($error);
             if (!\in_array($method, $r[$code][$error] ?? [])) {
@@ -119,11 +127,19 @@ final class Main
         $hr = [];
         $q = $this->pdo->prepare('SELECT error, description FROM error_descriptions');
         $q->execute();
-        $q->fetchAll(PDO::FETCH_FUNC, function ($error, $description) use (&$hr) {
+        $q->fetchAll(PDO::FETCH_FUNC, function ($error, $description) use (&$hr, $core) {
+            if ($core && ($error === 'UPDATE_APP_TO_LOGIN' || $error === 'UPDATE_APP_REQUIRED')) {
+                return;
+            }
             $error = self::sanitize($error);
             $description = \str_replace(' X ', ' %d ', $description);
+            if ($description !== '' && !\in_array($description[\strlen($description)-1], ['?', '.', '!'])) {
+                $description .= '.';
+            }
             $hr[$error] = $description;
         });
+
+        $hr['FLOOD_WAIT_%d'] = 'Please wait %d seconds before repeating the action.';
 
         return [$r, $hr];
     }
@@ -173,7 +189,7 @@ final class Main
             }
         }
 
-        $allowed = [];
+        $allowed = ['SESSION_PASSWORD_NEEDED' => true];
 
         $q = $this->pdo->prepare('SELECT error, method FROM errors');
         $q->execute();
@@ -231,6 +247,9 @@ final class Main
         $bot = $this->bot();
         \file_put_contents('data/bot.json', \json_encode(['ok' => true, 'result' => $bot]));
         \file_put_contents('data/botdiff.json', \json_encode(['ok' => true, 'result' => $bot], JSON_PRETTY_PRINT));
+
+        [$r, $hr] = $this->v4(true);
+        \file_put_contents('data/core.json', \json_encode(['errors' => $r, 'descriptions' => $hr, 'user_only' => $bot]));
     }
 
     public function run(): void
@@ -248,6 +267,7 @@ final class Main
             && $_REQUEST['method'] !== ''
             && \is_numeric($_REQUEST['code'])
             && !self::isBad($_REQUEST['error'], (int) $_REQUEST['code'])
+            && !($_REQUEST['error'] === 'Timeout' && !\in_array(\strtolower($_REQUEST['method']), ['messages.getbotcallbackanswer', 'messages.getinlinebotresults']))
          ) {
             $error = self::sanitize($_REQUEST['error']);
             $method = $_REQUEST['method'];
@@ -273,8 +293,7 @@ final class Main
                 exit(self::error($e->getMessage()));
             }
             exit(self::ok(true));
-        } else {
-            exit(self::error('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz, to report a new error use the `code`, `method` and `error` GET/POST parameters. Source code at https://github.com/danog/telerpc.'));
         }
+        exit(self::error('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz, to report a new error use the `code`, `method` and `error` GET/POST parameters. Source code at https://github.com/danog/telerpc.'));
     }
 }

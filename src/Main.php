@@ -26,6 +26,16 @@ final class Main
         return \json_encode(['ok' => true, 'result' => $result]);
     }
 
+    private static function sanitize(string $error): string
+    {
+        $error = preg_replace('/_XMIN$/', '_%dMIN', $error);
+        $error = preg_replace('/_\d+MIN$/', '_%dMIN', $error);
+        $error = \preg_replace('/_X(["_])?/', '_%d\1', $error);
+        $error = \preg_replace('/_\d+(["_])?/', '_%d\1', $error);
+        $error = preg_replace('/_X$/', '_%d', $error);
+        return preg_replace('/_\d+$/', '_%d', $error);
+    }
+
     private function v2(): array
     {
         $this->connect();
@@ -47,7 +57,7 @@ final class Main
             $r[$method][] = [
                 'error_code'        => $code,
                 'error_message'     => $error,
-                'error_description' => $desc[$error],
+                'error_description' => $desc[$error] ?? '',
             ];
         });
 
@@ -62,6 +72,7 @@ final class Main
         $q->execute();
         $r = [];
         $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r) {
+            $error = self::sanitize($error);
             $r[(int) $code][$method][$error] = $error;
         });
 
@@ -69,6 +80,7 @@ final class Main
         $q = $this->pdo->prepare('SELECT error, description FROM error_descriptions');
         $q->execute();
         $q->fetchAll(PDO::FETCH_FUNC, function ($error, $description) use (&$hr) {
+            $error = self::sanitize($error);
             $hr[$error] = $description;
         });
 
@@ -84,7 +96,7 @@ final class Main
         $r = [];
         $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r) {
             $code = (int) $code;
-            $error = \preg_replace('/_X(["_])?/', '_%d\1', $error);
+            $error = self::sanitize($error);
             if (!\in_array($method, $r[$code][$error] ?? [])) {
                 $r[$code][$error][] = $method;
             }
@@ -93,7 +105,7 @@ final class Main
         $q = $this->pdo->prepare('SELECT error, description FROM error_descriptions');
         $q->execute();
         $q->fetchAll(PDO::FETCH_FUNC, function ($error, $description) use (&$hr) {
-            $error = \preg_replace('/_X(["_])?/', '_%d\1', $error);
+            $error = self::sanitize($error);
             $description = \str_replace(' X ', ' %d ', $description);
             $hr[$error] = $description;
         });
@@ -116,18 +128,38 @@ final class Main
     {
         $this->connect();
 
-        $q = $this->pdo->prepare('SELECT error FROM error_descriptions');
+        $q = $this->pdo->prepare('SELECT error, method FROM errors');
         $q->execute();
-        $r = $q->fetchAll(PDO::FETCH_COLUMN);
-        foreach ($r as $error) {
-            if (\strpos($error, 'INPUT_METHOD_INVALID') !== false || \strpos($error, 'INPUT_CONSTRUCTOR_INVALID') !== false || \strpos($error, 'Received bad_msg_notification') === 0) {
-                $q = $this->pdo->prepare('DELETE FROM errors WHERE error=?');
-                $q->execute([$error]);
-                $q = $this->pdo->prepare('DELETE FROM error_descriptions WHERE error=?');
-                $q->execute([$error]);
-                echo 'Delete '.$error."\n";
+        $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
+        foreach ($r as $error => $methods) {
+            $fixed = self::sanitize($error);
+            if ($fixed !== $error) {
+                foreach ($methods as $method) {
+                    $q = $this->pdo->prepare('UPDATE errors SET error=? WHERE error=? AND method=?');
+                    $q->execute([$fixed, $error, $method]);
+
+                    $q = $this->pdo->prepare('UPDATE error_descriptions SET error=? WHERE error=?');
+                    $q->execute([$fixed, $error]);
+
+                    if (self::sanitize($method) === $fixed) {
+                        $q = $this->pdo->prepare('DELETE FROM errors WHERE error=? AND method=?');
+                        $q->execute([$fixed, $fixed]);
+                        echo 'Delete strange '.$error."\n";
+                    }
+                }
+                echo "$error => $fixed\n";
+            }
+            foreach ($methods as $method) {
+                if (self::sanitize($method) === $fixed) {
+                    $q = $this->pdo->prepare('DELETE FROM errors WHERE error=? AND method=?');
+                    $q->execute([$fixed, $method]);
+                    echo 'Delete strange '.$error."\n";
+                }
             }
         }
+
+        $allowed = [];
+
         $q = $this->pdo->prepare('SELECT error, method FROM errors');
         $q->execute();
         $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
@@ -140,6 +172,8 @@ final class Main
                 echo 'Delete '.$error."\n";
                 continue;
             }
+            $allowed[$error] = true;
+
             $q = $this->pdo->prepare('SELECT description FROM error_descriptions WHERE error=?');
             $q->execute([$error]);
             if (!$q->rowCount() || !($er = $q->fetchColumn())) {
@@ -158,21 +192,43 @@ final class Main
                 }
             }
         }
+
+        $q = $this->pdo->prepare('SELECT error FROM error_descriptions');
+        $q->execute();
+        $r = $q->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($r as $error) {
+            if (!isset($allowed[$error])) {
+                $q = $this->pdo->prepare('DELETE FROM errors WHERE error=?');
+                $q->execute([$error]);
+                $q = $this->pdo->prepare('DELETE FROM error_descriptions WHERE error=?');
+                $q->execute([$error]);
+                echo 'Delete '.$error."\n";
+            }
+        }
+
         $r = $this->v2();
         \file_put_contents('data/v2.json', \json_encode(['ok' => true, 'result' => $r]));
         [$r, $hr] = $this->v3();
         \file_put_contents('data/v3.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
         [$r, $hr] = $this->v4();
         \file_put_contents('data/v4.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
+        \file_put_contents('data/vdiff.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr], JSON_PRETTY_PRINT));
         $bot = $this->bot();
         \file_put_contents('data/bot.json', \json_encode(['ok' => true, 'result' => $bot]));
+        \file_put_contents('data/botdiff.json', \json_encode(['ok' => true, 'result' => $bot], JSON_PRETTY_PRINT));
     }
 
     public function run(): void
     {
         if (PHP_SAPI === 'cli') {
             $this->cli();
-        } elseif (isset($_REQUEST['error'], $_REQUEST['code'], $_REQUEST['method'])
+            die;
+        }
+
+        \ini_set('log_errors', 1);
+        \ini_set('error_log', '/tmp/rpc.log');
+        \header('Content-Type: application/json');
+        if (isset($_REQUEST['error'], $_REQUEST['code'], $_REQUEST['method'])
             && $_REQUEST['error'] !== ''
             && $_REQUEST['method'] !== ''
             && \is_numeric($_REQUEST['code'])
@@ -186,7 +242,7 @@ final class Main
             )
          ) {
             $error = $_REQUEST['error'];
-            $method = $_REQUEST['error'];
+            $method = self::sanitize($_REQUEST['error']);
             $code = $_REQUEST['code'];
 
             try {

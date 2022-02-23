@@ -3,3 +3,4 @@ vendor
 *.madeline.lock
 *.madeline
 db.php
+.php_cs.cache

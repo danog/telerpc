@@ -1,4 +1,4 @@
 # RPC database
 
-[API](https://rpc.pwrtelegram.xyz) for reporting Telegram MTProto RPC errors.  
-For localized descriptions, see [rpc-db](https://rpc.pwrtelegram.xyz).
+API for reporting Telegram MTProto RPC errors, main endpoint @ `https://rpc.pwrtelegram.xyz`.
+For localized descriptions, see [rpc-db](https://github.com/danog/rpc-db).

@@ -1,15 +1,10 @@
 {
-    "name": "danogentili/telerpc",
+    "name": "danog/telerpc",
     "description": "RPC Error reporting API",
     "type": "project",
-    "repositories": [
-        {
-            "type": "git",
-            "url": "https://github.com/danog/phpseclib"
-        }
-    ],
-    "require": {
-        "danog/madelineproto": "dev-master"
+    "require-dev": {
+        "amphp/php-cs-fixer-config": "dev-master",
+        "friendsofphp/php-cs-fixer": "^2.16"
     },
     "license": "AGPLV3",
     "authors": [
@@ -18,5 +13,7 @@
             "email": "daniil.gentili.dg@gmail.com"
         }
     ],
-    "minimum-stability": "dev"
+    "scripts": {
+        "cs-fix": "PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix -v --diff"
+    }
 }

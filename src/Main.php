@@ -81,6 +81,7 @@ final class Main
         $q->execute();
         $q->fetchAll(PDO::FETCH_FUNC, function ($error, $description) use (&$hr) {
             $error = self::sanitize($error);
+            $description = \str_replace(' X ', ' %d ', $description);
             $hr[$error] = $description;
         });
 
@@ -164,7 +165,7 @@ final class Main
         $q->execute();
         $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
         foreach ($r as $error => $methods) {
-            if (\strpos($error, 'INPUT_METHOD_INVALID') !== false || \strpos($error, 'INPUT_CONSTRUCTOR_INVALID') !== false || \strpos($error, 'Received bad_msg_notification') === 0) {
+            if (\strpos($error, 'INPUT_METHOD_INVALID') !== false || \strpos($error, 'INPUT_CONSTRUCTOR_INVALID') !== false || \strpos($error, 'Received bad_msg_notification') === 0 || $error === 'CONNECTION_NOT_INITED' || $error === 'LOCATION_NOT_AVAILABLE') {
                 $q = $this->pdo->prepare('DELETE FROM errors WHERE error=?');
                 $q->execute([$error]);
                 $q = $this->pdo->prepare('DELETE FROM error_descriptions WHERE error=?');
@@ -239,10 +240,12 @@ final class Main
                 || \str_contains($_REQUEST['error'], 'EMAIL_UNCONFIRMED_')
                 || \str_contains($_REQUEST['error'], '_MIGRATE_')
                 || \preg_match('/FILE_PART_\d*_MISSING/', $_REQUEST['error'])
+                || $_REQUEST['code'] == 500
+                || $_REQUEST['error'] === $_REQUEST['method']
             )
          ) {
-            $error = $_REQUEST['error'];
-            $method = self::sanitize($_REQUEST['error']);
+            $error = self::sanitize($_REQUEST['error']);
+            $method = $_REQUEST['method'];
             $code = $_REQUEST['code'];
 
             try {

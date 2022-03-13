@@ -213,7 +213,7 @@ final class Main
                 if (\strpos(\readline($error.' - '.$description.' OK? '), 'n') !== false) {
                     continue;
                 }
-                if ($description === 'drop') {
+                if ($description === 'drop' || $description === 'delete' || $description === 'd') {
                     $q = $this->pdo->prepare('DELETE FROM errors WHERE error=?');
                     $q->execute([$error]);
                     echo 'Delete '.$error."\n";

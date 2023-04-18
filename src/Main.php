@@ -117,7 +117,8 @@ final class Main
         $q = $this->pdo->prepare('SELECT method, code, error FROM errors');
         $q->execute();
         $r = [];
-        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r, $core) {
+        $bot_only = [];
+        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r, &$bot_only, $core) {
             if ($core && ($error === 'UPDATE_APP_TO_LOGIN' || $error === 'UPDATE_APP_REQUIRED')) {
                 return;
             }
@@ -125,6 +126,9 @@ final class Main
             $error = self::sanitize($error);
             if (!\in_array($method, $r[$code][$error] ?? [])) {
                 $r[$code][$error][] = $method;
+            }
+            if (\in_array($error, ['USER_BOT_REQUIRED', 'USER_BOT_INVALID']) && !\in_array($method, $bot_only)) {
+                $bot_only[] = $method;
             }
         });
         $hr = [];
@@ -144,7 +148,7 @@ final class Main
 
         $hr['FLOOD_WAIT_%d'] = 'Please wait %d seconds before repeating the action.';
 
-        return [$r, $hr];
+        return [$r, $hr, $bot_only];
     }
 
     private function bot(): array
@@ -162,6 +166,7 @@ final class Main
     {
         $this->connect();
 
+        $bot_only = [];
         $q = $this->pdo->prepare('SELECT error, method FROM errors');
         $q->execute();
         $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
@@ -251,8 +256,8 @@ final class Main
         \file_put_contents('data/bot.json', \json_encode(['ok' => true, 'result' => $bot]));
         \file_put_contents('data/botdiff.json', \json_encode(['ok' => true, 'result' => $bot], JSON_PRETTY_PRINT));
 
-        [$r, $hr] = $this->v4(true);
-        \file_put_contents('data/core.json', \json_encode(['errors' => $r, 'descriptions' => $hr, 'user_only' => $bot]));
+        [$r, $hr, $bot_only] = $this->v4(true);
+        \file_put_contents('data/core.json', \json_encode(['errors' => $r, 'descriptions' => $hr, 'user_only' => $bot, 'bot_only' => $bot_only]));
     }
 
     public function run(): void

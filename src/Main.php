@@ -272,7 +272,7 @@ final class Main
             && !self::isBad($_REQUEST['error'], (int) $_REQUEST['code'])
             && !($_REQUEST['error'] === 'Timeout' && !\in_array(\strtolower($_REQUEST['method']), ['messages.getbotcallbackanswer', 'messages.getinlinebotresults']))
             && !($_REQUEST['error'] === 'BOT_MISSING' && \in_array($_REQUEST['method'], ['stickers.changeStickerPosition', 'stickers.createStickerSet', 'messages.uploadMedia']))
-         ) {
+        ) {
             $error = self::sanitize($_REQUEST['error']);
             $method = $_REQUEST['method'];
             $code = $_REQUEST['code'];

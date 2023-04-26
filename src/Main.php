@@ -127,7 +127,7 @@ final class Main
             if (!\in_array($method, $r[$code][$error] ?? [])) {
                 $r[$code][$error][] = $method;
             }
-            if (\in_array($error, ['USER_BOT_REQUIRED', 'USER_BOT_INVALID']) && !\in_array($method, $bot_only)) {
+            if (\in_array($error, ['USER_BOT_REQUIRED', 'USER_BOT_INVALID']) && !\in_array($method, $bot_only) && !in_array($method, ['bots.setBotInfo', 'bots.getBotInfo'])) {
                 $bot_only[] = $method;
             }
         });

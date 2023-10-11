@@ -30,6 +30,9 @@ final class Main
     {
         return \in_array($error, ['PEER_FLOOD', 'INPUT_CONSTRUCTOR_INVALID_X', 'USER_DEACTIVATED_BAN', 'INPUT_METHOD_INVALID', 'INPUT_FETCH_ERROR', 'AUTH_KEY_UNREGISTERED', 'SESSION_REVOKED', 'USER_DEACTIVATED', 'RPC_SEND_FAIL', 'RPC_CALL_FAIL', 'RPC_MCGET_FAIL', 'INTERDC_5_CALL_ERROR', 'INTERDC_4_CALL_ERROR', 'INTERDC_3_CALL_ERROR', 'INTERDC_2_CALL_ERROR', 'INTERDC_1_CALL_ERROR', 'INTERDC_5_CALL_RICH_ERROR', 'INTERDC_4_CALL_RICH_ERROR', 'INTERDC_3_CALL_RICH_ERROR', 'INTERDC_2_CALL_RICH_ERROR', 'INTERDC_1_CALL_RICH_ERROR', 'AUTH_KEY_DUPLICATED', 'CONNECTION_NOT_INITED', 'LOCATION_NOT_AVAILABLE', 'AUTH_KEY_INVALID', 'LANG_CODE_EMPTY', 'memory limit exit', 'memory limit(?)', 'INPUT_REQUEST_TOO_LONG', 'SESSION_PASSWORD_NEEDED', 'INPUT_FETCH_FAIL',
             'CONNECTION_SYSTEM_EMPTY',
+            'FILE_WRITE_FAILED', 
+            'STORAGE_CHOOSE_VOLUME_FAILED', 
+            'Timedout', 'SEND_REACTION_RESULT1_INVALID',
             'BOT_POLLS_DISABLED', 'TEMPNAM_FAILED', 'MSG_WAIT_TIMEOUT',
             'CHAT_FROM_CALL_CHANGED', 'MTPROTO_CLUSTER_INVALID',
             'CONNECTION_DEVICE_MODEL_EMPTY', 'AUTH_KEY_PERM_EMPTY', 'UNKNOWN_METHOD', 'ENCRYPTION_OCCUPY_FAILED', 'ENCRYPTION_OCCUPY_ADMIN_FAILED', 'CHAT_OCCUPY_USERNAME_FAILED', 'REG_ID_GENERATE_FAILED',
@@ -40,6 +43,7 @@ final class Main
                 || \str_contains($error, '_MIGRATE_')
                 || \str_contains($error, 'INPUT_METHOD_INVALID')
                 || \str_contains($error, 'INPUT_CONSTRUCTOR_INVALID')
+                || \str_contains($error, 'INPUT_FETCH_ERROR_')
                 || \str_contains($error, 'https://telegram.org/dl')
                 || \str_starts_with($error, 'Received bad_msg_notification')
                 || \str_starts_with($error, 'No workers running')
@@ -270,6 +274,9 @@ final class Main
         \ini_set('log_errors', 1);
         \ini_set('error_log', '/tmp/rpc.log');
         \header('Content-Type: application/json');
+        \header('access-control-allow-origin: *');
+        \header('access-control-allow-methods: GET, POST, OPTIONS');
+        \header('access-control-expose-headers: Content-Length,Content-Type,Date,Server,Connection');
         if (isset($_REQUEST['error'], $_REQUEST['code'], $_REQUEST['method'])
             && $_REQUEST['error'] !== ''
             && $_REQUEST['method'] !== ''

@@ -2,6 +2,10 @@
     "name": "danog/telerpc",
     "description": "RPC Error reporting API",
     "type": "project",
+    "require": {
+        "danog/madelineproto": "^8"
+    },
+    "minimum-stability": "dev",
     "require-dev": {
         "amphp/php-cs-fixer-config": "dev-master",
         "friendsofphp/php-cs-fixer": "^2.16"

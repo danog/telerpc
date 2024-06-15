@@ -199,12 +199,13 @@ final class Main
             }
         }
 
-        $allowed = ['SESSION_PASSWORD_NEEDED' => true, 'BOT_METHOD_INVALID' => true];
-
         $q = $this->pdo->prepare('SELECT error, method FROM errors');
         $q->execute();
         $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
-        foreach ($r as $error => $methods) {
+        foreach (array_merge($r, self::GLOBAL_CODES) as $error => $methods) {
+            if (is_int($methods)) {
+                $methods = [];
+            }
             $anyok = false;
             foreach ($methods as $method) {
                 if (RPCErrorException::isBad($error, 0, $method)) {
@@ -218,7 +219,6 @@ final class Main
             if (!$anyok) {
                 continue;
             }
-            $allowed[$error] = true;
 
             $q = $this->pdo->prepare('SELECT description FROM error_descriptions WHERE error=?');
             $q->execute([$error]);
@@ -236,19 +236,6 @@ final class Main
                     $q = $this->pdo->prepare('REPLACE INTO error_descriptions VALUES (?, ?)');
                     $q->execute([$error, $description]);
                 }
-            }
-        }
-
-        $q = $this->pdo->prepare('SELECT error FROM error_descriptions');
-        $q->execute();
-        $r = $q->fetchAll(PDO::FETCH_COLUMN);
-        foreach ($r as $error) {
-            if (!isset($allowed[$error])) {
-                $q = $this->pdo->prepare('DELETE FROM errors WHERE error=?');
-                $q->execute([$error]);
-                $q = $this->pdo->prepare('DELETE FROM error_descriptions WHERE error=?');
-                $q->execute([$error]);
-                echo 'Delete '.$error."\n";
             }
         }
 

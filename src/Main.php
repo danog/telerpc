@@ -72,6 +72,9 @@ final class Main
         'CHAT_FORBIDDEN' => 403,
 
         'AUTH_KEY_DUPLICATED' => 406,
+        
+        'MSG_WAIT_TIMEOUT' => -503,
+        'MSG_WAIT_FAILED' => -500,
     ];
 
     private ?\PDO $pdo = null;

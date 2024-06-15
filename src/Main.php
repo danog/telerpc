@@ -10,7 +10,11 @@ final class Main
         'SLOWMODE_WAIT_%d'        => 420,
         'TAKEOUT_INIT_DELAY_%d'   => 420,
         'FLOOD_PREMIUM_WAIT_%d'   => 420,
+        'FLOOD_TEST_PHONE_WAIT_%d' => 420,
+
         'SESSION_PASSWORD_NEEDED' => 401,
+
+        'AUTH_KEY_DUPLICATED' => 406,
     ];
 
     private ?\PDO $pdo = null;
@@ -119,7 +123,7 @@ final class Main
                 $r[$code][$error][] = $method;
             }
             $errors[$error] = true;
-            if (\in_array($error, ['USER_BOT_REQUIRED', 'USER_BOT_INVALID']) && !\in_array($method, $bot_only) && !in_array($method, ['bots.setBotInfo', 'bots.getBotInfo'])) {
+            if (\in_array($error, ['USER_BOT_REQUIRED', 'USER_BOT_INVALID']) && !\in_array($method, $bot_only) && !\in_array($method, ['bots.setBotInfo', 'bots.getBotInfo'])) {
                 $bot_only[] = $method;
             }
         });
@@ -202,8 +206,8 @@ final class Main
         $q = $this->pdo->prepare('SELECT error, method FROM errors');
         $q->execute();
         $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
-        foreach (array_merge($r, self::GLOBAL_CODES) as $error => $methods) {
-            if (is_int($methods)) {
+        foreach (\array_merge($r, self::GLOBAL_CODES) as $error => $methods) {
+            if (\is_int($methods)) {
                 $methods = [];
             }
             $anyok = false;

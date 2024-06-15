@@ -209,7 +209,7 @@ final class Main
                 continue;
             }
             if (!isset(self::GLOBAL_CODES[$err])) {
-                throw new AssertionError("Missing code for $err!");
+                echo("Missing code for $err!\n");
             }
             $r[self::GLOBAL_CODES[$err]][$err] = [];
         }

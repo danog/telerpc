@@ -209,7 +209,7 @@ final class Main
                 continue;
             }
             if (!isset(self::GLOBAL_CODES[$err])) {
-                echo("Missing code for $err!\n");
+                echo "Missing code for $err!\n";
                 continue;
             }
             $r[self::GLOBAL_CODES[$err]][$err] = [];

@@ -10,6 +10,7 @@ final class Main
         'SLOWMODE_WAIT_%d'      => 420,
         'TAKEOUT_INIT_DELAY_%d' => 420,
         'FLOOD_PREMIUM_WAIT_%d' => 420,
+        "SESSION_PASSWORD_NEEDED" => 401
     ];
 
     private ?\PDO $pdo = null;

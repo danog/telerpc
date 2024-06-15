@@ -56,7 +56,6 @@ final class Main
         'STICKERSET_NOT_MODIFIED'           => 400,
         'TMP_PASSWORD_INVALID'              => 400,
         'TYPE_CONSTRUCTOR_INVALID'          => 400,
-        'VOLUME_LOC_NOT_FOUND'              => 400,
         'WEBDOCUMENT_URL_EMPTY'             => 400,
 
         'ACTIVE_USER_REQUIRED'    => 401,

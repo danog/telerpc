@@ -108,7 +108,7 @@ final class Main
         $r = [];
         $errors = [];
         $bot_only = [];
-        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r, &$bot_only, $core) {
+        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r, &$bot_only, &$errors, $core) {
             if ($core && ($error === 'UPDATE_APP_TO_LOGIN' || $error === 'UPDATE_APP_REQUIRED')) {
                 return;
             }

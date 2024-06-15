@@ -4,6 +4,10 @@ use danog\MadelineProto\RPCErrorException;
 
 final class Main
 {
+    private const GLOBAL_CODES = [
+        'FLOOD_WAIT_%d' => 420,
+    ];
+
     private ?\PDO $pdo = null;
 
     private function connect(): \PDO
@@ -98,6 +102,7 @@ final class Main
         $q = $this->pdo->prepare('SELECT method, code, error FROM errors');
         $q->execute();
         $r = [];
+        $errors = [];
         $bot_only = [];
         $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r, &$bot_only, $core) {
             if ($core && ($error === 'UPDATE_APP_TO_LOGIN' || $error === 'UPDATE_APP_REQUIRED')) {
@@ -108,6 +113,7 @@ final class Main
             if (!\in_array($method, $r[$code][$error] ?? [])) {
                 $r[$code][$error][] = $method;
             }
+            $errors[$error] = true;
             if (\in_array($error, ['USER_BOT_REQUIRED', 'USER_BOT_INVALID']) && !\in_array($method, $bot_only) && !in_array($method, ['bots.setBotInfo', 'bots.getBotInfo'])) {
                 $bot_only[] = $method;
             }
@@ -128,6 +134,16 @@ final class Main
         });
 
         $hr['FLOOD_WAIT_%d'] = 'Please wait %d seconds before repeating the action.';
+
+        foreach ($hr as $err => $_) {
+            if (isset($errors[$err])) {
+                continue;
+            }
+            if (!isset(self::GLOBAL_CODES[$err])) {
+                throw new AssertionError("Missing code for $err!");
+            }
+            $r[self::GLOBAL_CODES[$err]][$err] = [];
+        }
 
         return [$r, $hr, $bot_only];
     }

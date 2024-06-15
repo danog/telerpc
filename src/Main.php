@@ -6,6 +6,10 @@ final class Main
 {
     private const GLOBAL_CODES = [
         'FLOOD_WAIT_%d' => 420,
+        '2FA_CONFIRM_WAIT_%d' => 420,
+        'SLOWMODE_WAIT_%d' => 420,
+        'TAKEOUT_INIT_DELAY_%d' => 420,
+        'FLOOD_PREMIUM_WAIT_%d' => 420,
     ];
 
     private ?\PDO $pdo = null;

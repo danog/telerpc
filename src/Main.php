@@ -216,7 +216,7 @@ final class Main
                 }
                 $anyok = true;
             }
-            if (!$anyok) {
+            if (!$anyok && $methods) {
                 continue;
             }
 

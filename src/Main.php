@@ -263,11 +263,14 @@ final class Main
             }
         }
 
+        $allowed = [];
+
         $q = $this->pdo->prepare('SELECT error, method FROM errors');
         $q->execute();
         $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
         foreach (\array_merge($r, self::GLOBAL_CODES) as $error => $methods) {
             if (\is_int($methods)) {
+                $allowed[$error] = true;
                 $methods = [];
             }
             $anyok = false;
@@ -283,6 +286,7 @@ final class Main
             if (!$anyok && $methods) {
                 continue;
             }
+            $allowed[$error] = true;
 
             $q = $this->pdo->prepare('SELECT description FROM error_descriptions WHERE error=?');
             $q->execute([$error]);
@@ -300,6 +304,19 @@ final class Main
                     $q = $this->pdo->prepare('REPLACE INTO error_descriptions VALUES (?, ?)');
                     $q->execute([$error, $description]);
                 }
+            }
+        }
+
+        $q = $this->pdo->prepare('SELECT error FROM error_descriptions');
+        $q->execute();
+        $r = $q->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($r as $error) {
+            if (!isset($allowed[$error])) {
+                $q = $this->pdo->prepare('DELETE FROM errors WHERE error=?');
+                $q->execute([$error]);
+                $q = $this->pdo->prepare('DELETE FROM error_descriptions WHERE error=?');
+                $q->execute([$error]);
+                echo 'Delete '.$error."\n";
             }
         }
 

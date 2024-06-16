@@ -46,7 +46,6 @@ final class Main
         'POLL_VOTE_REQUIRED'                => 400,
         'REPLY_MARKUP_GAME_EMPTY'           => 400,
         'SESSION_TOO_FRESH_%d'              => 400,
-        'SHORTNAME_OCCUPY_FAILED'           => 400,
         'STICKERSET_NOT_MODIFIED'           => 400,
         'TMP_PASSWORD_INVALID'              => 400,
         'WEBDOCUMENT_URL_EMPTY'             => 400,

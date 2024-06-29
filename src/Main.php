@@ -33,7 +33,6 @@ final class Main
         'EMAIL_UNCONFIRMED_%d'              => 400,
         'FILE_MIGRATE_%d'                   => 400,
         'FILE_PART_%d_MISSING'              => 400,
-        'GROUP_CALL_INVALID'                => 400,
         'INPUT_CONSTRUCTOR_INVALID'         => 400,
         'INPUT_FETCH_ERROR'                 => 400,
         'INPUT_FETCH_FAIL'                  => 400,

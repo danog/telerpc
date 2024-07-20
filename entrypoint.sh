@@ -4,4 +4,4 @@ git pull
 
 composer update
 
-php server.php server
+php server.php serve

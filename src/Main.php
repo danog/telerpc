@@ -9,7 +9,6 @@ use Amp\Http\Server\Response;
 use Amp\Http\Server\SocketHttpServer;
 use Amp\Log\ConsoleFormatter;
 use Amp\Log\StreamHandler;
-use Amp\Mysql\MysqlConfig;
 use Amp\Mysql\MysqlConnectionPool;
 use danog\MadelineProto\RPCErrorException;
 use Monolog\Logger;
@@ -83,22 +82,23 @@ final class Main implements RequestHandler
     ];
 
     private MysqlConnectionPool $pool;
+
     public function __construct()
     {
         $this->pool = new MysqlConnectionPool(include __DIR__.'/../db.php');
     }
 
     private const HEADERS = [
-        'Content-Type' => 'application/json',
-        'access-control-allow-origin' => '*',
-        'access-control-allow-methods' => 'GET, POST, OPTIONS',
-        'access-control-expose-headers' => 'Content-Length,Content-Type,Date,Server,Connection'
+        'Content-Type'                  => 'application/json',
+        'access-control-allow-origin'   => '*',
+        'access-control-allow-methods'  => 'GET, POST, OPTIONS',
+        'access-control-expose-headers' => 'Content-Length,Content-Type,Date,Server,Connection',
     ];
 
     private static function error(string $message, int $code = HttpStatus::BAD_REQUEST): Response
     {
         return new Response(
-            $code, 
+            $code,
             self::HEADERS,
             json_encode(['ok' => false, 'description' => $message])
         );
@@ -107,7 +107,7 @@ final class Main implements RequestHandler
     private static function ok(mixed $result): Response
     {
         return new Response(
-            HttpStatus::OK, 
+            HttpStatus::OK,
             self::HEADERS,
             json_encode(['ok' => false, 'result' => $result])
         );
@@ -215,7 +215,7 @@ final class Main implements RequestHandler
         $q = $this->pool->prepare('SELECT method FROM bot_method_invalid');
         $r = [];
         foreach ($q->execute() as $result) {
-            $r []= $result['method'];
+            $r[] = $result['method'];
         }
 
         return $r;
@@ -227,7 +227,7 @@ final class Main implements RequestHandler
         $q = $this->pool->prepare('SELECT error, method FROM errors');
         $r = [];
         foreach ($q->execute() as $result) {
-            $r[$result['error']][]= $result['method'];
+            $r[$result['error']][] = $result['method'];
         }
         foreach ($r as $error => $methods) {
             $fixed = self::sanitize($error);
@@ -261,7 +261,7 @@ final class Main implements RequestHandler
         $q = $this->pool->prepare('SELECT error, method FROM errors');
         $r = [];
         foreach ($q->execute() as $result) {
-            $r[$result['error']][]= $result['method'];
+            $r[$result['error']][] = $result['method'];
         }
         foreach (\array_merge($r, self::GLOBAL_CODES) as $error => $methods) {
             if (\is_int($methods)) {
@@ -328,7 +328,8 @@ final class Main implements RequestHandler
         \file_put_contents('data/core.json', \json_encode(['errors' => $r, 'descriptions' => $hr, 'user_only' => $bot, 'bot_only' => $bot_only]));
     }
 
-    public function handleRequest(Request $request): Response {
+    public function handleRequest(Request $request): Response
+    {
         $form = Form::fromRequest($request);
         $error = $request->getQueryParameter('error') ?? $form->getValue('error');
         $code = $request->getQueryParameter('code') ?? $form->getValue('code');
@@ -342,6 +343,7 @@ final class Main implements RequestHandler
             )
         ) {
             $error = self::sanitize($error);
+
             try {
                 if ($error === $code) {
                     $this->pool->prepare('REPLACE INTO code_errors VALUES (?);')->execute([$code]);
@@ -355,13 +357,16 @@ final class Main implements RequestHandler
                     if ($row = $result->fetchRow()) {
                         return self::ok($row['description']);
                     }
+
                     return self::error('No description', 404);
                 }
             } catch (\Throwable $e) {
                 return self::error($e->getMessage(), 500);
             }
+
             return self::ok(true);
         }
+
         return self::error('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz, to report a new error use the `code`, `method` and `error` GET/POST parameters. Source code at https://github.com/danog/telerpc.');
     }
 

@@ -288,7 +288,7 @@ final class Main implements RequestHandler
             if (!($res['description'] ?? null)) {
                 $methods = \implode(', ', $methods);
                 $description = \readline('Insert description for '.$error.' ('.$methods.'): ');
-                if (\strpos(\readline($error.' - '.$description.' OK? '), 'n') !== false) {
+                if (\strpos(\readline($error.' - '.$description.' OK? '), 'n') !== false || !$description) {
                     continue;
                 }
                 if ($description === 'drop' || $description === 'delete' || $description === 'd') {

@@ -1,3 +1,10 @@
 <?php
 
-return new PDO('mysql:unix_socket=/var/run/mysqld/mysqld.sock;dbname=rpc;charset=utf8mb4', 'user', 'pass');
+use Amp\Mysql\MysqlConfig;
+
+return new MysqlConfig(
+    host: 'unix_socket=/var/run/mysqld/mysqld.sock',
+    user: 'user',
+    password: 'pass',
+    database: 'rpc',
+);

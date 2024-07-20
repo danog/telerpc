@@ -1,8 +1,23 @@
 <?php
 
+use Amp\Http\HttpStatus;
+use Amp\Http\Server\DefaultErrorHandler;
+use Amp\Http\Server\FormParser\Form;
+use Amp\Http\Server\Request;
+use Amp\Http\Server\RequestHandler;
+use Amp\Http\Server\Response;
+use Amp\Http\Server\SocketHttpServer;
+use Amp\Log\ConsoleFormatter;
+use Amp\Log\StreamHandler;
+use Amp\Mysql\MysqlConfig;
+use Amp\Mysql\MysqlConnectionPool;
 use danog\MadelineProto\RPCErrorException;
+use Monolog\Logger;
+use Monolog\Processor\PsrLogMessageProcessor;
 
-final class Main
+use function Amp\ByteStream\getStdout;
+
+final class Main implements RequestHandler
 {
     private const GLOBAL_CODES = [
         'FLOOD_WAIT_%d'            => 420,
@@ -67,28 +82,35 @@ final class Main
         'MSG_WAIT_FAILED'  => -500,
     ];
 
-    private ?\PDO $pdo = null;
-
-    private function connect(): \PDO
+    private MysqlConnectionPool $pool;
+    public function __construct()
     {
-        if ($this->pdo !== null) {
-            return $this->pdo;
-        }
-        $this->pdo = include __DIR__.'/../db.php';
-        $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        return $this->pdo;
+        $this->pool = new MysqlConnectionPool(include __DIR__.'/../db.php');
     }
 
-    private static function error(string $message): string
+    private const HEADERS = [
+        'Content-Type' => 'application/json',
+        'access-control-allow-origin' => '*',
+        'access-control-allow-methods' => 'GET, POST, OPTIONS',
+        'access-control-expose-headers' => 'Content-Length,Content-Type,Date,Server,Connection'
+    ];
+
+    private static function error(string $message, int $code = HttpStatus::BAD_REQUEST): Response
     {
-        return \json_encode(['ok' => false, 'description' => $message]);
+        return new Response(
+            $code, 
+            self::HEADERS,
+            json_encode(['ok' => false, 'description' => $message])
+        );
     }
 
-    private static function ok(mixed $result): string
+    private static function ok(mixed $result): Response
     {
-        return \json_encode(['ok' => true, 'result' => $result]);
+        return new Response(
+            HttpStatus::OK, 
+            self::HEADERS,
+            json_encode(['ok' => false, 'result' => $result])
+        );
     }
 
     private static function sanitize(string $error): string
@@ -104,69 +126,53 @@ final class Main
 
     private function v2(): array
     {
-        $this->connect();
         $desc = [];
-        $q = $this->pdo->prepare('SELECT error, description FROM error_descriptions');
-        $q->execute();
-        $q->fetchAll(PDO::FETCH_FUNC, function ($error, $description) use (&$desc) {
+        $q = $this->pool->prepare('SELECT error, description FROM error_descriptions');
+        foreach ($q->execute() as ['error' => $error, 'description' => $description]) {
             $desc[$error] = $description;
-        });
+        }
 
-        $q = $this->pdo->prepare('SELECT method, code, error FROM errors');
-        $q->execute();
+        $q = $this->pool->prepare('SELECT method, code, error FROM errors WHERE code != 500');
         $r = [];
-        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r, &$desc) {
+        foreach ($q->execute() as ['method' => $method, 'code' => $code, 'error' => $error]) {
             $code = (int) $code;
-            if ($code === 500) {
-                return;
-            }
             $r[$method][] = [
                 'error_code'        => $code,
                 'error_message'     => $error,
                 'error_description' => $desc[$error] ?? '',
             ];
-        });
+        }
 
         return $r;
     }
 
     private function v3(): array
     {
-        $this->connect();
-
-        $q = $this->pdo->prepare('SELECT method, code, error FROM errors');
-        $q->execute();
+        $q = $this->pool->prepare('SELECT method, code, error FROM errors');
         $r = [];
-        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r) {
+        foreach ($q->execute() as ['method' => $method, 'code' => $code, 'error' => $error]) {
             $error = self::sanitize($error);
             $r[(int) $code][$method][$error] = $error;
-        });
+        }
 
         $hr = [];
-        $q = $this->pdo->prepare('SELECT error, description FROM error_descriptions');
-        $q->execute();
-        $q->fetchAll(PDO::FETCH_FUNC, function ($error, $description) use (&$hr) {
+        $q = $this->pool->prepare('SELECT error, description FROM error_descriptions');
+        foreach ($q->execute() as ['error' => $error, 'description' => $description]) {
             $error = self::sanitize($error);
             $description = \str_replace(' X ', ' %d ', $description);
             $hr[$error] = $description;
-        });
+        }
 
         return [$r, $hr];
     }
 
     private function v4(bool $core = false): array
     {
-        $this->connect();
-
-        $q = $this->pdo->prepare('SELECT method, code, error FROM errors');
-        $q->execute();
+        $q = $this->pool->prepare('SELECT method, code, error FROM errors');
         $r = [];
         $errors = [];
         $bot_only = [];
-        $q->fetchAll(PDO::FETCH_FUNC, function ($method, $code, $error) use (&$r, &$bot_only, &$errors, $core) {
-            if ($core && ($error === 'UPDATE_APP_TO_LOGIN' || $error === 'UPDATE_APP_REQUIRED')) {
-                return;
-            }
+        foreach ($q->execute() as ['method' => $method, 'code' => $code, 'error' => $error]) {
             $code = (int) $code;
             $error = self::sanitize($error);
             if (!\in_array($method, $r[$code][$error] ?? [])) {
@@ -176,21 +182,17 @@ final class Main
             if (\in_array($error, ['USER_BOT_REQUIRED', 'USER_BOT_INVALID']) && !\in_array($method, $bot_only) && !\in_array($method, ['bots.setBotInfo', 'bots.getBotInfo'])) {
                 $bot_only[] = $method;
             }
-        });
+        }
         $hr = [];
-        $q = $this->pdo->prepare('SELECT error, description FROM error_descriptions');
-        $q->execute();
-        $q->fetchAll(PDO::FETCH_FUNC, function ($error, $description) use (&$hr, $core) {
-            if ($core && ($error === 'UPDATE_APP_TO_LOGIN' || $error === 'UPDATE_APP_REQUIRED')) {
-                return;
-            }
+        $q = $this->pool->prepare('SELECT error, description FROM error_descriptions');
+        foreach ($q->execute() as ['error' => $error, 'description' => $description]) {
             $error = self::sanitize($error);
             $description = \str_replace(' X ', ' %d ', $description);
             if ($description !== '' && !\in_array($description[\strlen($description) - 1], ['?', '.', '!'])) {
                 $description .= '.';
             }
             $hr[$error] = $description;
-        });
+        }
 
         $hr['FLOOD_WAIT_%d'] = 'Please wait %d seconds before repeating the action.';
 
@@ -210,35 +212,35 @@ final class Main
 
     private function bot(): array
     {
-        $this->connect();
-
-        $q = $this->pdo->prepare('SELECT method FROM bot_method_invalid');
-        $q->execute();
-        $r = $q->fetchAll(PDO::FETCH_COLUMN);
+        $q = $this->pool->prepare('SELECT method FROM bot_method_invalid');
+        $r = [];
+        foreach ($q->execute() as $result) {
+            $r []= $result['method'];
+        }
 
         return $r;
     }
 
     private function cli(): void
     {
-        $this->connect();
-
         $bot_only = [];
-        $q = $this->pdo->prepare('SELECT error, method FROM errors');
-        $q->execute();
-        $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
+        $q = $this->pool->prepare('SELECT error, method FROM errors');
+        $r = [];
+        foreach ($q->execute() as $result) {
+            $r[$result['error']][]= $result['method'];
+        }
         foreach ($r as $error => $methods) {
             $fixed = self::sanitize($error);
             if ($fixed !== $error) {
                 foreach ($methods as $method) {
-                    $q = $this->pdo->prepare('UPDATE errors SET error=? WHERE error=? AND method=?');
+                    $q = $this->pool->prepare('UPDATE errors SET error=? WHERE error=? AND method=?');
                     $q->execute([$fixed, $error, $method]);
 
-                    $q = $this->pdo->prepare('UPDATE error_descriptions SET error=? WHERE error=?');
+                    $q = $this->pool->prepare('UPDATE error_descriptions SET error=? WHERE error=?');
                     $q->execute([$fixed, $error]);
 
                     if (self::sanitize($method) === $fixed) {
-                        $q = $this->pdo->prepare('DELETE FROM errors WHERE error=? AND method=?');
+                        $q = $this->pool->prepare('DELETE FROM errors WHERE error=? AND method=?');
                         $q->execute([$fixed, $fixed]);
                         echo 'Delete strange '.$error."\n";
                     }
@@ -247,7 +249,7 @@ final class Main
             }
             foreach ($methods as $method) {
                 if (self::sanitize($method) === $fixed) {
-                    $q = $this->pdo->prepare('DELETE FROM errors WHERE error=? AND method=?');
+                    $q = $this->pool->prepare('DELETE FROM errors WHERE error=? AND method=?');
                     $q->execute([$fixed, $method]);
                     echo 'Delete strange '.$error."\n";
                 }
@@ -256,9 +258,11 @@ final class Main
 
         $allowed = [];
 
-        $q = $this->pdo->prepare('SELECT error, method FROM errors');
-        $q->execute();
-        $r = $q->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP);
+        $q = $this->pool->prepare('SELECT error, method FROM errors');
+        $r = [];
+        foreach ($q->execute() as $result) {
+            $r[$result['error']][]= $result['method'];
+        }
         foreach (\array_merge($r, self::GLOBAL_CODES) as $error => $methods) {
             if (\is_int($methods)) {
                 $allowed[$error] = true;
@@ -267,7 +271,7 @@ final class Main
             $anyok = false;
             foreach ($methods as $method) {
                 if (RPCErrorException::isBad($error, 0, $method)) {
-                    $q = $this->pdo->prepare('DELETE FROM errors WHERE error=? AND method=?');
+                    $q = $this->pool->prepare('DELETE FROM errors WHERE error=? AND method=?');
                     $q->execute([$error, $method]);
                     echo "Delete $error for $method\n";
                     continue;
@@ -279,33 +283,31 @@ final class Main
             }
             $allowed[$error] = true;
 
-            $q = $this->pdo->prepare('SELECT description FROM error_descriptions WHERE error=?');
-            $q->execute([$error]);
-            if (!$q->rowCount() || !($er = $q->fetchColumn())) {
+            $q = $this->pool->prepare('SELECT description FROM error_descriptions WHERE error=?');
+            $res = $q->execute([$error])->fetchRow();
+            if (!($res['description'] ?? null)) {
                 $methods = \implode(', ', $methods);
                 $description = \readline('Insert description for '.$error.' ('.$methods.'): ');
                 if (\strpos(\readline($error.' - '.$description.' OK? '), 'n') !== false) {
                     continue;
                 }
                 if ($description === 'drop' || $description === 'delete' || $description === 'd') {
-                    $q = $this->pdo->prepare('DELETE FROM errors WHERE error=?');
+                    $q = $this->pool->prepare('DELETE FROM errors WHERE error=?');
                     $q->execute([$error]);
                     echo 'Delete '.$error."\n";
                 } else {
-                    $q = $this->pdo->prepare('REPLACE INTO error_descriptions VALUES (?, ?)');
+                    $q = $this->pool->prepare('REPLACE INTO error_descriptions VALUES (?, ?)');
                     $q->execute([$error, $description]);
                 }
             }
         }
 
-        $q = $this->pdo->prepare('SELECT error FROM error_descriptions');
-        $q->execute();
-        $r = $q->fetchAll(PDO::FETCH_COLUMN);
-        foreach ($r as $error) {
+        $q = $this->pool->prepare('SELECT error FROM error_descriptions');
+        foreach ($q->execute() as ['error' => $error]) {
             if (!isset($allowed[$error])) {
-                $q = $this->pdo->prepare('DELETE FROM errors WHERE error=?');
+                $q = $this->pool->prepare('DELETE FROM errors WHERE error=?');
                 $q->execute([$error]);
-                $q = $this->pdo->prepare('DELETE FROM error_descriptions WHERE error=?');
+                $q = $this->pool->prepare('DELETE FROM error_descriptions WHERE error=?');
                 $q->execute([$error]);
                 echo 'Delete '.$error."\n";
             }
@@ -326,54 +328,65 @@ final class Main
         \file_put_contents('data/core.json', \json_encode(['errors' => $r, 'descriptions' => $hr, 'user_only' => $bot, 'bot_only' => $bot_only]));
     }
 
-    public function run(): void
+    public function handleRequest(Request $request): Response {
+        $form = Form::fromRequest($request);
+        $error = $request->getQueryParameter('error') ?? $form->getValue('error');
+        $code = $request->getQueryParameter('code') ?? $form->getValue('code');
+        $method = $request->getQueryParameter('method') ?? $form->getValue('method');
+        if ($error && $code && $method
+            && \is_numeric($_REQUEST['code'])
+            && !RPCErrorException::isBad(
+                $error,
+                (int) $code,
+                $method
+            )
+        ) {
+            $error = self::sanitize($error);
+            try {
+                if ($error === $code) {
+                    $this->pool->prepare('REPLACE INTO code_errors VALUES (?);')->execute([$code]);
+                } elseif ($error === 'BOT_METHOD_INVALID') {
+                    $this->pool->prepare('REPLACE INTO bot_method_invalid VALUES (?);')->execute([$method]);
+                } else {
+                    $this->pool->prepare('REPLACE INTO errors VALUES (?, ?, ?);')->execute([$error, $method, $code]);
+
+                    $q = $this->pool->prepare('SELECT description FROM error_descriptions WHERE error=?');
+                    $result = $q->execute([$error]);
+                    if ($row = $result->fetchRow()) {
+                        return self::ok($row['description']);
+                    }
+                    return self::error('No description', 404);
+                }
+            } catch (\Throwable $e) {
+                return self::error($e->getMessage(), 500);
+            }
+            return self::ok(true);
+        }
+        return self::error('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz, to report a new error use the `code`, `method` and `error` GET/POST parameters. Source code at https://github.com/danog/telerpc.');
+    }
+
+    public function run(bool $serve): void
     {
-        if (PHP_SAPI === 'cli') {
+        if (!$serve) {
             $this->cli();
             exit;
         }
 
-        \ini_set('log_errors', 1);
-        \ini_set('error_log', '/tmp/rpc.log');
-        \header('Content-Type: application/json');
-        \header('access-control-allow-origin: *');
-        \header('access-control-allow-methods: GET, POST, OPTIONS');
-        \header('access-control-expose-headers: Content-Length,Content-Type,Date,Server,Connection');
-        if (isset($_REQUEST['error'], $_REQUEST['code'], $_REQUEST['method'])
-            && $_REQUEST['error'] !== ''
-            && $_REQUEST['method'] !== ''
-            && \is_numeric($_REQUEST['code'])
-            && !RPCErrorException::isBad(
-                $_REQUEST['error'],
-                (int) $_REQUEST['code'],
-                $_REQUEST['method']
-            )
-        ) {
-            $error = self::sanitize($_REQUEST['error']);
-            $method = $_REQUEST['method'];
-            $code = $_REQUEST['code'];
+        $logHandler = new StreamHandler(getStdout());
+        $logHandler->pushProcessor(new PsrLogMessageProcessor());
+        $logHandler->setFormatter(new ConsoleFormatter());
 
-            try {
-                $this->connect();
-                if ($error === $code) {
-                    $this->pdo->prepare('REPLACE INTO code_errors VALUES (?);')->execute([$code]);
-                } elseif ($error === 'BOT_METHOD_INVALID') {
-                    $this->pdo->prepare('REPLACE INTO bot_method_invalid VALUES (?);')->execute([$method]);
-                } else {
-                    $this->pdo->prepare('REPLACE INTO errors VALUES (?, ?, ?);')->execute([$error, $method, $code]);
+        $logger = new Logger('server');
+        $logger->pushHandler($logHandler);
+        $errorHandler = new DefaultErrorHandler();
 
-                    $q = $this->pdo->prepare('SELECT description FROM error_descriptions WHERE error=?');
-                    $q->execute([$error]);
-                    if ($q->rowCount()) {
-                        exit(self::ok($q->fetchColumn()));
-                    }
-                    exit(self::error('No description'));
-                }
-            } catch (\Throwable $e) {
-                exit(self::error($e->getMessage()));
-            }
-            exit(self::ok(true));
-        }
-        exit(self::error('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz, to report a new error use the `code`, `method` and `error` GET/POST parameters. Source code at https://github.com/danog/telerpc.'));
+        $server = SocketHttpServer::createForDirectAccess($logger);
+        $server->expose('127.0.0.1:1337');
+        $server->start($this, $errorHandler);
+
+        // Serve requests until SIGINT or SIGTERM is received by the process.
+        Amp\trapSignal([SIGINT, SIGTERM]);
+
+        $server->stop();
     }
 }

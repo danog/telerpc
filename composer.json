@@ -3,7 +3,10 @@
     "description": "RPC Error reporting API",
     "type": "project",
     "require": {
-        "danog/madelineproto": "^8"
+        "danog/madelineproto": "^8",
+        "amphp/http-server": "3.x-dev",
+        "amphp/mysql": "3.x-dev",
+        "amphp/http-server-form-parser": "2.x-dev"
     },
     "minimum-stability": "dev",
     "require-dev": {
@@ -17,6 +20,11 @@
             "email": "daniil.gentili.dg@gmail.com"
         }
     ],
+    "autoload": {
+        "files": [
+            "src/Main.php"
+        ]
+    },
     "scripts": {
         "cs-fix": "PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix -v --diff"
     }

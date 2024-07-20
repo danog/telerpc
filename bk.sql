@@ -14,7 +14,6 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-g
 --
 -- Table structure for table `bot_method_invalid`
 --
@@ -927,7 +926,7 @@ INSERT INTO `error_descriptions` VALUES
 ('SENSITIVE_CHANGE_FORBIDDEN','You can\'t change your sensitive content settings.'),
 ('SESSION_PASSWORD_NEEDED','2FA is enabled, use a password to login'),
 ('SESSION_TOO_FRESH_%d','This session was created less than 24 hours ago, try again in %d seconds'),
-i('SETTINGS_INVALID','Invalid settings were provided'),
+('SETTINGS_INVALID','Invalid settings were provided'),
 ('SHA256_HASH_INVALID','The provided SHA256 hash is invalid'),
 ('SHORT_NAME_INVALID','The specified short name is invalid'),
 ('SHORT_NAME_OCCUPIED','The specified short name is already in use'),
@@ -2691,7 +2690,7 @@ INSERT INTO `errors` VALUES
 ('USER_BANNED_IN_CHANNEL','messages.sendMedia',400),
 ('USER_BANNED_IN_CHANNEL','messages.sendMessage',400),
 ('USER_BANNED_IN_CHANNEL','messages.sendMultiMedia',400),
-t('USER_BANNED_IN_CHANNEL','messages.sendReaction',400),
+('USER_BANNED_IN_CHANNEL','messages.sendReaction',400),
 ('USER_BANNED_IN_CHANNEL','messages.setTyping',400),
 ('USER_BANNED_IN_CHANNEL','messages.updatePinnedMessage',400),
 ('USER_BANNED_IN_CHANNEL','messages.uploadMedia',400),

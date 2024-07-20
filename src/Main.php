@@ -334,7 +334,7 @@ final class Main implements RequestHandler
         $code = $request->getQueryParameter('code') ?? $form->getValue('code');
         $method = $request->getQueryParameter('method') ?? $form->getValue('method');
         if ($error && $code && $method
-            && \is_numeric($_REQUEST['code'])
+            && \is_numeric($code)
             && !RPCErrorException::isBad(
                 $error,
                 (int) $code,

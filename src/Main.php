@@ -386,7 +386,7 @@ final class Main implements RequestHandler
         $errorHandler = new DefaultErrorHandler();
 
         $server = SocketHttpServer::createForDirectAccess($logger);
-        $server->expose('127.0.0.1:1337');
+        $server->expose('0.0.0.0:1337');
         $server->start($this, $errorHandler);
 
         // Serve requests until SIGINT or SIGTERM is received by the process.

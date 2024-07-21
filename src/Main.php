@@ -2,6 +2,11 @@
 
 use Amp\Http\HttpStatus;
 use Amp\Http\Server\DefaultErrorHandler;
+use Amp\Http\Server\Driver\Client;
+use Amp\Http\Server\Driver\Http2Driver;
+use Amp\Http\Server\Driver\HttpDriver;
+use Amp\Http\Server\Driver\HttpDriverFactory;
+use Amp\Http\Server\ErrorHandler;
 use Amp\Http\Server\FormParser\Form;
 use Amp\Http\Server\Request;
 use Amp\Http\Server\RequestHandler;
@@ -370,9 +375,9 @@ final class Main implements RequestHandler
         return self::error('API for reporting Telegram RPC errors. For localized errors see https://rpc.madelineproto.xyz, to report a new error use the `code`, `method` and `error` GET/POST parameters. Source code at https://github.com/danog/telerpc.');
     }
 
-    public function run(bool $serve): void
+    public function run(string $mode): void
     {
-        if (!$serve) {
+        if ($mode !== 'serve' && $mode !== 'serve_h2c') {
             $this->cli();
             exit;
         }
@@ -391,6 +396,32 @@ final class Main implements RequestHandler
             PHP_INT_MAX,
             PHP_INT_MAX,
             PHP_INT_MAX,
+            $mode === 'serve'
+                ? null
+                : new class($logger) implements HttpDriverFactory {
+                    public function __construct(
+                        private readonly Logger $logger,
+                    ) {
+                    }
+
+                    public function createHttpDriver(
+                        RequestHandler $requestHandler,
+                        ErrorHandler $errorHandler,
+                        Client $client,
+                    ): HttpDriver {
+                        return new Http2Driver(
+                            requestHandler: $requestHandler,
+                            errorHandler: $errorHandler,
+                            logger: $this->logger,
+                            concurrentStreamLimit: PHP_INT_MAX
+                        );
+                    }
+
+                    public function getApplicationLayerProtocols(): array
+                    {
+                        return ["h2"];
+                    }
+                }
         );
         $server->expose('0.0.0.0:1337');
         $server->start($this, $errorHandler);

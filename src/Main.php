@@ -385,7 +385,13 @@ final class Main implements RequestHandler
         $logger->pushHandler($logHandler);
         $errorHandler = new DefaultErrorHandler();
 
-        $server = SocketHttpServer::createForDirectAccess($logger);
+        $server = SocketHttpServer::createForDirectAccess(
+            $logger,
+            true,
+            PHP_INT_MAX,
+            PHP_INT_MAX,
+            PHP_INT_MAX,
+        );
         $server->expose('0.0.0.0:1337');
         $server->start($this, $errorHandler);
 

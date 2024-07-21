@@ -396,7 +396,7 @@ final class Main implements RequestHandler
             PHP_INT_MAX,
             PHP_INT_MAX,
             PHP_INT_MAX,
-            $mode === 'serve'
+            httpDriverFactory: $mode === 'serve'
                 ? null
                 : new class($logger) implements HttpDriverFactory {
                     public function __construct(

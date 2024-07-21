@@ -419,7 +419,7 @@ final class Main implements RequestHandler
 
                     public function getApplicationLayerProtocols(): array
                     {
-                        return ["h2"];
+                        return ['h2'];
                     }
                 }
         );

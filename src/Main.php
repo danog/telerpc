@@ -307,14 +307,20 @@ final class Main implements RequestHandler
             }
         }
 
-        $q = $this->pool->prepare('SELECT error FROM error_descriptions');
-        foreach ($q->execute() as ['error' => $error]) {
+        $q = $this->pool->prepare('SELECT error, description FROM error_descriptions');
+        foreach ($q->execute() as ['error' => $error, 'description' => $description]) {
             if (!isset($allowed[$error])) {
                 $q = $this->pool->prepare('DELETE FROM errors WHERE error=?');
                 $q->execute([$error]);
                 $q = $this->pool->prepare('DELETE FROM error_descriptions WHERE error=?');
                 $q->execute([$error]);
                 echo 'Delete '.$error."\n";
+                continue;
+            }
+            $newDesc = str_replace('](/', '](https://core.telegram.org/', $description);
+            if ($newDesc !== $description) {
+                $q = $this->pool->prepare('UPDATE error_descriptions SET description=? WHERE description=?');
+                $q->execute([$newDesc, $description]);
             }
         }
 

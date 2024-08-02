@@ -29,7 +29,6 @@ final class Main implements RequestHandler
         'SLOWMODE_WAIT_%d'         => 420,
         'TAKEOUT_INIT_DELAY_%d'    => 420,
         'FLOOD_PREMIUM_WAIT_%d'    => 420,
-        'FLOOD_TEST_PHONE_WAIT_%d' => 420,
 
         'SESSION_PASSWORD_NEEDED' => 401,
 
@@ -43,7 +42,6 @@ final class Main implements RequestHandler
 
         'BOT_GAMES_DISABLED'                => 400,
         'BOT_METHOD_INVALID'                => 400,
-        'BOT_POLLS_DISABLED'                => 400,
         'CONNECTION_DEVICE_MODEL_EMPTY'     => 400,
         'CONNECTION_LANG_PACK_INVALID'      => 400,
         'CONNECTION_NOT_INITED'             => 400,
@@ -60,7 +58,6 @@ final class Main implements RequestHandler
         'INPUT_REQUEST_TOO_LONG'            => 400,
         'PASSWORD_TOO_FRESH_%d'             => 400,
         'PEER_FLOOD'                        => 400,
-        'PHOTO_THUMB_URL_INVALID'           => 400,
         'POLL_VOTE_REQUIRED'                => 400,
         'REPLY_MARKUP_GAME_EMPTY'           => 400,
         'SESSION_TOO_FRESH_%d'              => 400,
@@ -68,7 +65,6 @@ final class Main implements RequestHandler
         'TMP_PASSWORD_INVALID'              => 400,
         'WEBDOCUMENT_URL_EMPTY'             => 400,
 
-        'ACTIVE_USER_REQUIRED'    => 401,
         'AUTH_KEY_INVALID'        => 401,
         'AUTH_KEY_PERM_EMPTY'     => 401,
         'AUTH_KEY_UNREGISTERED'   => 401,

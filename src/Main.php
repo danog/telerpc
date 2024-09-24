@@ -196,6 +196,9 @@ final class Main implements RequestHandler
         }
 
         $hr['FLOOD_WAIT_%d'] = 'Please wait %d seconds before repeating the action.';
+        if ($core) {
+            $hr['UPDATE_APP_TO_LOGIN'] = 'Please update your client to login.';
+        }
 
         foreach ($hr as $err => $_) {
             if (isset($errors[$err])) {

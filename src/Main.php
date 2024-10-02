@@ -110,7 +110,7 @@ final class Main implements RequestHandler
         return new Response(
             HttpStatus::OK,
             self::HEADERS,
-            json_encode(['ok' => false, 'result' => $result])
+            json_encode(['ok' => true, 'result' => $result])
         );
     }
 

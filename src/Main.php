@@ -173,7 +173,7 @@ final class Main implements RequestHandler
         $r = [];
         $errors = [];
         $bot_only = [];
-        $business_only = [];
+        $business_supported = [];
         foreach ($q->execute() as ['method' => $method, 'code' => $code, 'error' => $error]) {
             $code = (int) $code;
             $error = self::sanitize($error);
@@ -188,7 +188,7 @@ final class Main implements RequestHandler
                 $bot_only[] = $method;
             }
             if ($error === 'BUSINESS_CONNECTION_INVALID') {
-                $business_only[] = $method;
+                $business_supported[] = $method;
             }
         }
         $hr = [];
@@ -233,7 +233,8 @@ final class Main implements RequestHandler
             'errors' => $r,
             'descriptions' => $hr,
             'user_only' => $user_only,
-            'bot_only' => $bot_only
+            'bot_only' => $bot_only,
+            'business_supported' => $business_supported,
         ]));
     }
 

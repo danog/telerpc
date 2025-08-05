@@ -7,6 +7,8 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" &&
     \
     apk add procps git unzip github-cli openssh 
 
+ADD https://github.com/danog/telerpc/commits/master.atom /dev/null
+
 RUN git clone https://github.com/danog/telerpc /app
 
 WORKDIR /app

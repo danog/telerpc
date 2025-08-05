@@ -101,7 +101,7 @@ final class Main implements RequestHandler
         return new Response(
             $code,
             self::HEADERS,
-            json_encode(['ok' => false, 'description' => $message])
+            \json_encode(['ok' => false, 'description' => $message])
         );
     }
 
@@ -110,7 +110,7 @@ final class Main implements RequestHandler
         return new Response(
             HttpStatus::OK,
             self::HEADERS,
-            json_encode(['ok' => true, 'result' => $result])
+            \json_encode(['ok' => true, 'result' => $result])
         );
     }
 
@@ -125,7 +125,7 @@ final class Main implements RequestHandler
         return \preg_replace('/_\d+$/', '_%d', $error);
     }
 
-    private function v2(): array
+    private function v2(): void
     {
         $desc = [];
         $q = $this->pool->prepare('SELECT error, description FROM error_descriptions');
@@ -144,10 +144,10 @@ final class Main implements RequestHandler
             ];
         }
 
-        return $r;
+        \file_put_contents('data/v2.json', \json_encode(['ok' => true, 'result' => $r]));
     }
 
-    private function v3(): array
+    private function v3(): void
     {
         $q = $this->pool->prepare('SELECT method, code, error FROM errors');
         $r = [];
@@ -164,15 +164,16 @@ final class Main implements RequestHandler
             $hr[$error] = $description;
         }
 
-        return [$r, $hr];
+        \file_put_contents('data/v3.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
     }
 
-    private function v4(bool $core = false): array
+    private function v4(): void
     {
         $q = $this->pool->prepare('SELECT method, code, error FROM errors');
         $r = [];
         $errors = [];
         $bot_only = [];
+        $business_only = [];
         foreach ($q->execute() as ['method' => $method, 'code' => $code, 'error' => $error]) {
             $code = (int) $code;
             $error = self::sanitize($error);
@@ -180,8 +181,14 @@ final class Main implements RequestHandler
                 $r[$code][$error][] = $method;
             }
             $errors[$error] = true;
-            if (\in_array($error, ['USER_BOT_REQUIRED', 'USER_BOT_INVALID']) && !\in_array($method, $bot_only) && !\in_array($method, ['bots.setBotInfo', 'bots.getBotInfo'])) {
+            if (\in_array($error, ['USER_BOT_REQUIRED', 'USER_BOT_INVALID'])
+                && !\in_array($method, $bot_only)
+                && !\in_array($method, ['bots.setBotInfo', 'bots.getBotInfo'])
+            ) {
                 $bot_only[] = $method;
+            }
+            if ($error === 'BUSINESS_CONNECTION_INVALID') {
+                $business_only[] = $method;
             }
         }
         $hr = [];
@@ -211,23 +218,29 @@ final class Main implements RequestHandler
             $r[self::GLOBAL_CODES[$err]][$err] = [];
         }
 
-        return [$r, $hr, $bot_only];
-    }
-
-    private function bot(): array
-    {
         $q = $this->pool->prepare('SELECT method FROM bot_method_invalid');
-        $r = [];
+        $user_only = [];
         foreach ($q->execute() as $result) {
-            $r[] = $result['method'];
+            $user_only[] = $result['method'];
         }
 
-        return $r;
+        \file_put_contents('data/v4.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
+        \file_put_contents('data/vdiff.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr], JSON_PRETTY_PRINT));
+
+        \file_put_contents('data/bot.json', \json_encode(['ok' => true, 'result' => $user_only]));
+        \file_put_contents('data/botdiff.json', \json_encode(['ok' => true, 'result' => $user_only], JSON_PRETTY_PRINT));
+
+        \file_put_contents('data/core.json', \json_encode([
+            'errors' => $r,
+            'descriptions' => $hr,
+            'user_only' => $user_only,
+            'bot_only' => $bot_only
+        ]));
     }
+
 
     private function cli(): void
     {
-        $bot_only = [];
         $q = $this->pool->prepare('SELECT error, method FROM errors');
         $r = [];
         foreach ($q->execute() as $result) {
@@ -316,26 +329,17 @@ final class Main implements RequestHandler
                 echo 'Delete '.$error."\n";
                 continue;
             }
-            $newDesc = str_replace('](/', '](https://core.telegram.org/', $description);
+            $newDesc = \str_replace('](/', '](https://core.telegram.org/', $description);
             if ($newDesc !== $description) {
                 $q = $this->pool->prepare('UPDATE error_descriptions SET description=? WHERE description=?');
                 $q->execute([$newDesc, $description]);
             }
         }
 
-        $r = $this->v2();
-        \file_put_contents('data/v2.json', \json_encode(['ok' => true, 'result' => $r]));
-        [$r, $hr] = $this->v3();
-        \file_put_contents('data/v3.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
-        [$r, $hr] = $this->v4();
-        \file_put_contents('data/v4.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
-        \file_put_contents('data/vdiff.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr], JSON_PRETTY_PRINT));
-        $bot = $this->bot();
-        \file_put_contents('data/bot.json', \json_encode(['ok' => true, 'result' => $bot]));
-        \file_put_contents('data/botdiff.json', \json_encode(['ok' => true, 'result' => $bot], JSON_PRETTY_PRINT));
+        $this->v2();
+        $this->v3();
 
-        [$r, $hr, $bot_only] = $this->v4(true);
-        \file_put_contents('data/core.json', \json_encode(['errors' => $r, 'descriptions' => $hr, 'user_only' => $bot, 'bot_only' => $bot_only]));
+        $this->v4();
     }
 
     public function handleRequest(Request $request): Response

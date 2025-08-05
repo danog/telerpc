@@ -230,14 +230,13 @@ final class Main implements RequestHandler
         $hr['UPDATE_APP_TO_LOGIN'] = 'Please update your client to login.';
 
         \file_put_contents('data/core.json', \json_encode([
-            'errors' => $r,
-            'descriptions' => $hr,
-            'user_only' => $user_only,
-            'bot_only' => $bot_only,
+            'errors'             => $r,
+            'descriptions'       => $hr,
+            'user_only'          => $user_only,
+            'bot_only'           => $bot_only,
             'business_supported' => $business_supported,
         ]));
     }
-
 
     private function cli(): void
     {

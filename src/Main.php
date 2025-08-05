@@ -203,9 +203,6 @@ final class Main implements RequestHandler
         }
 
         $hr['FLOOD_WAIT_%d'] = 'Please wait %d seconds before repeating the action.';
-        if ($core) {
-            $hr['UPDATE_APP_TO_LOGIN'] = 'Please update your client to login.';
-        }
 
         foreach ($hr as $err => $_) {
             if (isset($errors[$err])) {
@@ -229,6 +226,8 @@ final class Main implements RequestHandler
 
         \file_put_contents('data/bot.json', \json_encode(['ok' => true, 'result' => $user_only]));
         \file_put_contents('data/botdiff.json', \json_encode(['ok' => true, 'result' => $user_only], JSON_PRETTY_PRINT));
+
+        $hr['UPDATE_APP_TO_LOGIN'] = 'Please update your client to login.';
 
         \file_put_contents('data/core.json', \json_encode([
             'errors' => $r,

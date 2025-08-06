@@ -225,7 +225,9 @@ final class Main implements RequestHandler
         \file_put_contents('data/vdiff.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr], JSON_PRETTY_PRINT));
 
         \file_put_contents('data/bot.json', \json_encode(['ok' => true, 'result' => $user_only]));
-        \file_put_contents('data/botdiff.json', \json_encode(['ok' => true, 'result' => $user_only], JSON_PRETTY_PRINT));
+        \file_put_contents('data/user_only_diff.json', \json_encode(['ok' => true, 'result' => $user_only], JSON_PRETTY_PRINT));
+        \file_put_contents('data/bot_only_diff.json', \json_encode(['ok' => true, 'result' => $bot_only], JSON_PRETTY_PRINT));
+        \file_put_contents('data/business_diff.json', \json_encode(['ok' => true, 'result' => $business_supported], JSON_PRETTY_PRINT));
 
         $hr['UPDATE_APP_TO_LOGIN'] = 'Please update your client to login.';
 

@@ -174,6 +174,7 @@ final class Main implements RequestHandler
         $errors = [];
         $bot_only = [];
         $business_supported = [];
+        $unauthed_allowed = [];
         foreach ($q->execute() as ['method' => $method, 'code' => $code, 'error' => $error]) {
             $code = (int) $code;
             $error = self::sanitize($error);
@@ -189,6 +190,9 @@ final class Main implements RequestHandler
             }
             if ($error === 'BUSINESS_CONNECTION_INVALID') {
                 $business_supported[] = $method;
+            }
+            if ($error === 'AUTH_KEY_UNREGISTERED') {
+                $unauthed_allowed[] = $method;
             }
         }
         $hr = [];
@@ -228,6 +232,7 @@ final class Main implements RequestHandler
         \file_put_contents('data/user_only_diff.json', \json_encode(['ok' => true, 'result' => $user_only], JSON_PRETTY_PRINT));
         \file_put_contents('data/bot_only_diff.json', \json_encode(['ok' => true, 'result' => $bot_only], JSON_PRETTY_PRINT));
         \file_put_contents('data/business_diff.json', \json_encode(['ok' => true, 'result' => $business_supported], JSON_PRETTY_PRINT));
+        \file_put_contents('data/unauthed_diff.json', \json_encode(['ok' => true, 'result' => $unauthed_allowed], JSON_PRETTY_PRINT));
 
         $hr['UPDATE_APP_TO_LOGIN'] = 'Please update your client to login.';
 
@@ -237,6 +242,7 @@ final class Main implements RequestHandler
             'user_only'          => $user_only,
             'bot_only'           => $bot_only,
             'business_supported' => $business_supported,
+            'unauthed_allowed'   => $unauthed_allowed,
         ]));
     }
 

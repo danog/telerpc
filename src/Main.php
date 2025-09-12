@@ -269,10 +269,11 @@ final class Main implements RequestHandler
         foreach ($q->execute() as $result) {
             $user_only[] = $result['method'];
         }
-        $user_only[] = 'account.deleteAccount';
-        $user_only[] = 'account.resetAuthorization';
-        $user_only[] = 'auth.resetAuthorizations';
-        $user_only[] = 'account.updateUsername';
+        $user_only []= 'account.resetPassword';
+        $user_only []= 'account.deleteAccount';
+        $user_only []= 'account.resetAuthorization';
+        $user_only []= 'auth.resetAuthorizations';
+        $user_only []= 'account.updateUsername';
         $user_only = array_unique($user_only);
         $user_only = array_values($user_only);
 

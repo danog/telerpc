@@ -174,7 +174,8 @@ final class Main implements RequestHandler
         $errors = [];
         $bot_only = [];
         $business_supported = [];
-        $unauthed_allowed = [];
+        $unauthed_disallowed = [];
+        $methods = [];
         foreach ($q->execute() as ['method' => $method, 'code' => $code, 'error' => $error]) {
             $code = (int) $code;
             $error = self::sanitize($error);
@@ -192,9 +193,14 @@ final class Main implements RequestHandler
                 $business_supported[] = $method;
             }
             if ($error === 'AUTH_KEY_UNREGISTERED') {
-                $unauthed_allowed[] = $method;
+                $unauthed_disallowed[$method] = true;
             }
+            $methods[$method] = true;
         }
+        $unauthed_allowed = array_diff_key($methods, $unauthed_disallowed);
+        $unauthed_allowed = \array_keys($unauthed_allowed);
+        sort($unauthed_allowed);
+
         $hr = [];
         $q = $this->pool->prepare('SELECT error, description FROM error_descriptions');
         foreach ($q->execute() as ['error' => $error, 'description' => $description]) {

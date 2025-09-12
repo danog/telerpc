@@ -212,9 +212,9 @@ final class Main implements RequestHandler
         }
         $unauthed_allowed = array_diff_key($methods, $unauthed_disallowed);
         $unauthed_allowed = \array_keys($unauthed_allowed);
-        $unauthed_allowed []= 'auth.checkPassword';
-        $unauthed_allowed []= 'account.getPassword';
-        $unauthed_allowed []= 'auth.signUp';
+        $unauthed_allowed[] = 'auth.checkPassword';
+        $unauthed_allowed[] = 'account.getPassword';
+        $unauthed_allowed[] = 'auth.signUp';
         sort($unauthed_allowed);
 
         $hr = [];

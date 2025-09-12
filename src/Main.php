@@ -20,6 +20,7 @@ use danog\MadelineProto\Settings\TLSchema;
 use danog\MadelineProto\TL\TL;
 use Monolog\Logger;
 use Monolog\Processor\PsrLogMessageProcessor;
+use Webmozart\Assert\Assert;
 
 use function Amp\ByteStream\getStdout;
 
@@ -86,6 +87,7 @@ final class Main implements RequestHandler
 
     private MysqlConnectionPool $pool;
     private readonly array $methods;
+    private readonly string $auth;
 
     public function __construct()
     {
@@ -96,6 +98,23 @@ final class Main implements RequestHandler
             true,
         );
         $this->pool = new MysqlConnectionPool(include __DIR__.'/../db.php');
+        $auth = getenv('TELERPC_AUTH_TOKEN');
+        Assert::notEmpty($auth, 'TELERPC_AUTH_TOKEN environment variable is not set');
+        $this->auth = $auth;
+    }
+
+    private const ERRORS_REQUIRE_AUTH = [
+        'AUTH_KEY_UNREGISTERED',
+        'BOT_METHOD_INVALID',
+        'USER_BOT_REQUIRED',
+        'USER_BOT_INVALID',
+        'BUSINESS_CONNECTION_INVALID',
+    ];
+    private function cleanup(): void
+    {
+        foreach (self::ERRORS_REQUIRE_AUTH as $error) {
+            $this->pool->prepare('DELETE FROM errors WHERE error=?')->execute([$error]);
+        }
     }
 
     private const HEADERS = [
@@ -377,6 +396,18 @@ final class Main implements RequestHandler
         $error = $request->getQueryParameter('error') ?? $form->getValue('error');
         $code = $request->getQueryParameter('code') ?? $form->getValue('code');
         $method = $request->getQueryParameter('method') ?? $form->getValue('method');
+        $auth = $request->getQueryParameter('auth') ?? $form->getValue('auth');
+        if ($request->getQueryParameter('cleanup') !== null
+            || $form->getValue('cleanup') !== null
+        ) {
+            if ($auth === $this->auth) {
+                $this->cleanup();
+
+                return self::ok(true);
+            }
+
+            return self::error('Invalid auth token', 403);
+        }
         if ($error && $code && $method
             && \is_numeric($code)
             && !RPCErrorException::isBad(
@@ -385,6 +416,15 @@ final class Main implements RequestHandler
                 $method
             )
         ) {
+            if (\in_array($error, self::ERRORS_REQUIRE_AUTH) && $auth !== $this->auth) {
+                $q = $this->pool->prepare('SELECT description FROM error_descriptions WHERE error=?');
+                $result = $q->execute([$error]);
+                if ($row = $result->fetchRow()) {
+                    return self::ok($row['description']);
+                }
+
+                return self::error('No description', 404);
+            }
             $error = self::sanitize($error);
 
             try {

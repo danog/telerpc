@@ -232,10 +232,10 @@ final class Main implements RequestHandler
             }
         }
         $unauthed_allowed = array_diff_key($methods, $unauthed_disallowed);
+        $unauthed_allowed['auth.signUp'] = true;
+        $unauthed_allowed['auth.checkPassword'] = true;
+        $unauthed_allowed['account.getPassword'] = true;
         $unauthed_allowed = \array_keys($unauthed_allowed);
-        $unauthed_allowed[] = 'auth.checkPassword';
-        $unauthed_allowed[] = 'account.getPassword';
-        $unauthed_allowed[] = 'auth.signUp';
         sort($unauthed_allowed);
         sort($business_supported);
         sort($bot_only);
@@ -269,6 +269,12 @@ final class Main implements RequestHandler
         foreach ($q->execute() as $result) {
             $user_only[] = $result['method'];
         }
+        $user_only []= 'account.deleteAccount';
+        $user_only []= 'account.resetAuthorization';
+        $user_only []= 'auth.resetAuthorizations';
+        $user_only []= 'account.updateUsername';
+        $user_only = array_unique($user_only);
+        $user_only = array_values($user_only);
 
         sort($user_only);
 

@@ -237,6 +237,8 @@ final class Main implements RequestHandler
         $unauthed_allowed[] = 'account.getPassword';
         $unauthed_allowed[] = 'auth.signUp';
         sort($unauthed_allowed);
+        sort($business_supported);
+        sort($bot_only);
 
         $hr = [];
         $q = $this->pool->prepare('SELECT error, description FROM error_descriptions');
@@ -267,6 +269,8 @@ final class Main implements RequestHandler
         foreach ($q->execute() as $result) {
             $user_only[] = $result['method'];
         }
+
+        sort($user_only);
 
         \file_put_contents('data/v4.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr]));
         \file_put_contents('data/vdiff.json', \json_encode(['ok' => true, 'result' => $r, 'human_result' => $hr], JSON_PRETTY_PRINT));

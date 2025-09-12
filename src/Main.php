@@ -90,7 +90,7 @@ final class Main implements RequestHandler
     public function __construct()
     {
         $tl = new TL();
-        $tl->init(new TLSchema);
+        $tl->init(new TLSchema());
         $this->methods = array_fill_keys(
             array_column($tl->getMethods()->by_id, 'method'),
             true,

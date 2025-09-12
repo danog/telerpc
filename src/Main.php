@@ -110,6 +110,7 @@ final class Main implements RequestHandler
         'USER_BOT_INVALID',
         'BUSINESS_CONNECTION_INVALID',
     ];
+
     private function cleanup(): void
     {
         foreach (self::ERRORS_REQUIRE_AUTH as $error) {

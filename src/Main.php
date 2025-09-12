@@ -116,6 +116,7 @@ final class Main implements RequestHandler
         foreach (self::ERRORS_REQUIRE_AUTH as $error) {
             $this->pool->prepare('DELETE FROM errors WHERE error=?')->execute([$error]);
         }
+        $this->pool->query('DELETE FROM bot_method_invalid');
     }
 
     private const HEADERS = [

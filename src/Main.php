@@ -16,6 +16,8 @@ use Amp\Log\ConsoleFormatter;
 use Amp\Log\StreamHandler;
 use Amp\Mysql\MysqlConnectionPool;
 use danog\MadelineProto\RPCErrorException;
+use danog\MadelineProto\Settings\TLSchema;
+use danog\MadelineProto\TL\TL;
 use Monolog\Logger;
 use Monolog\Processor\PsrLogMessageProcessor;
 
@@ -83,9 +85,16 @@ final class Main implements RequestHandler
     ];
 
     private MysqlConnectionPool $pool;
+    private readonly array $methods;
 
     public function __construct()
     {
+        $tl = new TL();
+        $tl->init(new TLSchema);
+        $this->methods = array_fill_keys(
+            array_column($tl->getMethods()->by_id, 'method'),
+            true,
+        );
         $this->pool = new MysqlConnectionPool(include __DIR__.'/../db.php');
     }
 
@@ -195,7 +204,11 @@ final class Main implements RequestHandler
             if ($error === 'AUTH_KEY_UNREGISTERED') {
                 $unauthed_disallowed[$method] = true;
             }
-            $methods[$method] = true;
+            if (isset($this->methods[$method])) {
+                $methods[$method] = true;
+            } else {
+                echo "Unknown method $method!\n";
+            }
         }
         $unauthed_allowed = array_diff_key($methods, $unauthed_disallowed);
         $unauthed_allowed = \array_keys($unauthed_allowed);

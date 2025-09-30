@@ -351,7 +351,7 @@ final class Main implements RequestHandler
                 if (RPCErrorException::isBad($error, 0, $method)) {
                     $q = $this->pool->prepare('DELETE FROM errors WHERE error=? AND method=?');
                     $q->execute([$error, $method]);
-                    echo "Delete $error for $method\n";
+                    echo "Delete bad $error for $method\n";
                     continue;
                 }
                 $anyok = true;
@@ -387,7 +387,7 @@ final class Main implements RequestHandler
                 $q->execute([$error]);
                 $q = $this->pool->prepare('DELETE FROM error_descriptions WHERE error=?');
                 $q->execute([$error]);
-                echo 'Delete '.$error."\n";
+                echo 'Delete disallowed '.$error."\n";
                 continue;
             }
             $newDesc = \str_replace('](/', '](https://core.telegram.org/', $description);

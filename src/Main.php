@@ -89,6 +89,8 @@ final class Main implements RequestHandler
     private readonly array $methods;
     private readonly string $auth;
 
+    private const SETTINGS_TABLE = 'settings';
+
     public function __construct()
     {
         $tl = new TL();
@@ -98,9 +100,40 @@ final class Main implements RequestHandler
             true,
         );
         $this->pool = new MysqlConnectionPool(include __DIR__.'/../db.php');
+        $this->ensureSettingsTable();
         $auth = getenv('TELERPC_AUTH_TOKEN');
         Assert::notEmpty($auth, 'TELERPC_AUTH_TOKEN environment variable is not set');
         $this->auth = $auth;
+    }
+
+    private function ensureSettingsTable(): void
+    {
+        $this->pool->query(
+            'CREATE TABLE IF NOT EXISTS `'.self::SETTINGS_TABLE.'` ('
+            .'`key` varchar(255) NOT NULL,'
+            .'`value` int NOT NULL,'
+            .'PRIMARY KEY (`key`)'
+            .') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
+    }
+
+    private function getLayer(): int
+    {
+        $result = $this->pool->prepare('SELECT value FROM `'.self::SETTINGS_TABLE.'` WHERE `key` = ?')
+            ->execute(['layer'])
+            ->fetchRow();
+
+        if (!isset($result['value'])) {
+            throw new \RuntimeException('Layer is not configured');
+        }
+
+        return (int) $result['value'];
+    }
+
+    private function setLayer(int $layer): void
+    {
+        $this->pool->prepare('REPLACE INTO `'.self::SETTINGS_TABLE.'` (`key`, `value`) VALUES (?, ?)')
+            ->execute(['layer', $layer]);
     }
 
     private const ERRORS_REQUIRE_AUTH = [
@@ -297,6 +330,7 @@ final class Main implements RequestHandler
             'bot_only'           => $bot_only,
             'business_supported' => $business_supported,
             'unauthed_allowed'   => $unauthed_allowed,
+            'layer'              => $this->getLayer(),
         ]));
     }
 
@@ -410,6 +444,28 @@ final class Main implements RequestHandler
         $code = $request->getQueryParameter('code') ?? $form->getValue('code');
         $method = $request->getQueryParameter('method') ?? $form->getValue('method');
         $auth = $request->getQueryParameter('auth') ?? $form->getValue('auth');
+        $setLayer = $request->getQueryParameter('setLayer') ?? $form->getValue('setLayer');
+        if ($setLayer !== null) {
+            if ($auth !== $this->auth) {
+                return self::error('Invalid auth token', 403);
+            }
+
+            if (!is_numeric($setLayer)) {
+                return self::error('Layer must be a number');
+            }
+            $layer = (int) $setLayer;
+            if ($layer <= 0) {
+                return self::error('Invalid layer number');
+            }
+
+            try {
+                $this->setLayer($layer);
+            } catch (\Throwable $e) {
+                return self::error($e->getMessage(), 500);
+            }
+
+            return self::ok(['layer' => $layer]);
+        }
         if ($request->getQueryParameter('cleanup') !== null
             || $form->getValue('cleanup') !== null
         ) {

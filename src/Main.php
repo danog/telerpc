@@ -88,6 +88,7 @@ final class Main implements RequestHandler
     private MysqlConnectionPool $pool;
     private readonly array $methods;
     private readonly string $auth;
+    private readonly int $layer;
 
     private const SETTINGS_TABLE = 'settings';
 
@@ -95,6 +96,7 @@ final class Main implements RequestHandler
     {
         $tl = new TL();
         $tl->init(new TLSchema());
+        $this->layer = (new TLSchema)->getLayer();
         $this->methods = array_fill_keys(
             array_column($tl->getMethods()->by_id, 'method'),
             true,
@@ -232,6 +234,11 @@ final class Main implements RequestHandler
 
     private function v4(): void
     {
+        $layer = $this->getLayer();
+        if ($layer !== $this->layer) {
+            throw new AssertionError("Layer mismatch, I have {$this->layer}, but have errors for layer $layer!");
+        }
+
         $q = $this->pool->prepare('SELECT method, code, error FROM errors');
         $r = [];
         $errors = [];

@@ -96,7 +96,7 @@ final class Main implements RequestHandler
     {
         $tl = new TL();
         $tl->init(new TLSchema());
-        $this->layer = (new TLSchema)->getLayer();
+        $this->layer = (new TLSchema())->getLayer();
         $this->methods = array_fill_keys(
             array_column($tl->getMethods()->by_id, 'method'),
             true,

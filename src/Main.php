@@ -577,8 +577,19 @@ final class Main implements RequestHandler
                     }
                 }
         );
-        $server->expose('0.0.0.0:1337');
+        // LISTEN: an address and port (by default 0.0.0.0:1337), or the path of a unix socket,
+        // for a reverse proxy on the same host.
+        $listen = \getenv('LISTEN') ?: '0.0.0.0:1337';
+        $unix = \str_starts_with($listen, '/');
+        if ($unix && \file_exists($listen)) {
+            \unlink($listen);
+        }
+        $server->expose($listen);
         $server->start($this, $errorHandler);
+        if ($unix) {
+            // Read and write for the socket's owner and group (e.g. the reverse proxy's) only.
+            \chmod($listen, 0660);
+        }
 
         // Serve requests until SIGINT or SIGTERM is received by the process.
         Amp\trapSignal([SIGINT, SIGTERM]);

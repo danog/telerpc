@@ -1,0 +1,7 @@
+{
+    "ok": true,
+    "result": [
+        "bots.answerWebhookJSONQuery",
+        "bots.sendCustomRequest"
+    ]
+}

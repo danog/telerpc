@@ -1,0 +1,1 @@
+{"ok":true,"result":["account.deleteAccount","account.resetAuthorization","account.resetPassword","account.updateUsername","auth.resetAuthorizations","contacts.getContacts","messages.getDialogs"]}

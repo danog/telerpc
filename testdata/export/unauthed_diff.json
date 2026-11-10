@@ -1,0 +1,17 @@
+{
+    "ok": true,
+    "result": [
+        "account.getPassword",
+        "auth.checkPassword",
+        "auth.signUp",
+        "bots.answerWebhookJSONQuery",
+        "bots.sendCustomRequest",
+        "bots.setBotInfo",
+        "messages.editMessage",
+        "messages.getBotCallbackAnswer",
+        "messages.getChats",
+        "messages.getFullChat",
+        "messages.sendMedia",
+        "messages.sendMessage"
+    ]
+}

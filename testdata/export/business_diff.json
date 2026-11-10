@@ -1,0 +1,8 @@
+{
+    "ok": true,
+    "result": [
+        "messages.editMessage",
+        "messages.sendMessage",
+        "messages.sendMessage"
+    ]
+}

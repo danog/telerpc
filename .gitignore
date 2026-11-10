@@ -1,6 +1,4 @@
-composer.lock
-vendor
-*.madeline.lock
-*.madeline
-db.php
-.php_cs.cache
+*.db
+*.db-*
+*.db.import*
+/telerpc

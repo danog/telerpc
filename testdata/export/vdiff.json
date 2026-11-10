@@ -1,0 +1,74 @@
+{
+    "ok": true,
+    "result": {
+        "401": {
+            "AUTH_KEY_UNREGISTERED": [
+                "messages.getHistory"
+            ],
+            "SESSION_REVOKED": []
+        },
+        "400": {
+            "BUSINESS_CONNECTION_INVALID": [
+                "messages.editMessage",
+                "messages.sendMessage"
+            ],
+            "CHAT_ID_INVALID": [
+                "messages.getChats",
+                "messages.getFullChat"
+            ],
+            "FILE_REFERENCE_%d_EXPIRED": [
+                "messages.sendMedia"
+            ],
+            "MESSAGE_EMPTY": [
+                "test"
+            ],
+            "PEER_ID_INVALID": [
+                "messages.getHistory",
+                "messages.sendMessage"
+            ],
+            "USER_BOT_INVALID": [
+                "bots.sendCustomRequest"
+            ],
+            "USER_BOT_REQUIRED": [
+                "bots.answerWebhookJSONQuery",
+                "bots.setBotInfo"
+            ]
+        },
+        "403": {
+            "BUSINESS_CONNECTION_INVALID": [
+                "messages.sendMessage"
+            ]
+        },
+        "500": {
+            "INTERNAL_THING": [
+                "messages.sendMessage"
+            ]
+        },
+        "420": {
+            "SLOWMODE_WAIT_%d": [
+                "messages.sendMessage"
+            ],
+            "FLOOD_WAIT_%d": []
+        },
+        "-503": {
+            "Timeout": [
+                "messages.getBotCallbackAnswer"
+            ]
+        }
+    },
+    "human_result": {
+        "AUTH_KEY_UNREGISTERED": "The specified authorization key is not registered in the system.",
+        "BUSINESS_CONNECTION_INVALID": "The `connection_id` is invalid \/ unknown?",
+        "CHAT_ID_INVALID": "The provided chat id is invalid.",
+        "FILE_REFERENCE_%d_EXPIRED": "File reference %d expired, see [file references](\/api\/file_reference)!",
+        "INTERNAL_THING": "",
+        "MESSAGE_EMPTY": "Caf\u00e9 \u2014 the message is empty \ud83d\ude00.",
+        "ORPHAN_ERROR": "Described, but never reported.",
+        "PEER_ID_INVALID": "The provided peer id is invalid.",
+        "SESSION_REVOKED": "The session was revoked.",
+        "SLOWMODE_WAIT_%d": "Slowmode is enabled, wait %d seconds.",
+        "Timeout": "Timeout while fetching data.",
+        "USER_BOT_REQUIRED": "This method can only be called by a bot.",
+        "FLOOD_WAIT_%d": "Please wait %d seconds before repeating the action."
+    }
+}
